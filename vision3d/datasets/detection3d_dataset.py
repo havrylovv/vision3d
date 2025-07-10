@@ -8,9 +8,10 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 import torchvision.transforms as transforms
 import torch.nn.functional as F
-from logging import getLogger
+import logging
+from vision3d.utils.logger import configure_logger
 
-logger = getLogger(__name__)
+logger = configure_logger(__name__, logging.INFO)
 
 class Detection3DDataset(Dataset):
     """
@@ -103,8 +104,6 @@ class Detection3DDataset(Dataset):
         else:
             rgb = transforms.ToTensor()(rgb)
         if "pc" in self.transform:
-            print("Applying point cloud transformation")
-            print(f"Original point cloud shape: {pc.shape}")
             pc = self.transform["pc"](pc)
         if "mask" in self.transform:
             mask = self.transform["mask"](mask)
