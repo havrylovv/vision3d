@@ -10,9 +10,11 @@ import torchvision.transforms as transforms
 import torch.nn.functional as F
 import logging
 from vision3d.utils.logger import configure_logger
+from vision3d.utils.registry import DATASETS
 
 logger = configure_logger(__name__, logging.INFO)
 
+@DATASETS.register()
 class Detection3DDataset(Dataset):
     """
     Dataset for 3D Detection with RGB images, point clouds, masks, and 3D bounding boxes.
