@@ -12,7 +12,7 @@ import logging
 from vision3d.utils.logger import configure_logger
 from vision3d.utils.registry import DATASETS
 
-logger = configure_logger(__name__, logging.INFO)
+logger = configure_logger(__name__.split(".")[-1], logging.INFO)
 
 @DATASETS.register()
 class Detection3DDataset(Dataset):
