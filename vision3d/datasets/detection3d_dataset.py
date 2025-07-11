@@ -168,13 +168,14 @@ def collate_fn(batch: List[Dict[str, Any]]) -> Dict[str, Any]:
         Batched data dictionary
     """
     # Stack RGB images (assuming same size after transforms)
-    #rgb_batch = torch.stack([sample['rgb'] for sample in batch])
-    rgb_batch = [sample['rgb'] for sample in batch]  # List of tensors
+    rgb_batch = torch.stack([sample['rgb'] for sample in batch])
+    #rgb_batch = [sample['rgb'] for sample in batch]  # List of tensors
     # Stack masks (assuming same size)
     #mask_batch = torch.stack([sample['mask'] for sample in batch])
     mask_batch = [sample['mask'] for sample in batch]
     # Handle variable-size point clouds
-    pc_batch = [sample['pc'] for sample in batch]
+    #pc_batch = [sample['pc'] for sample in batch]
+    pc_batch = torch.stack([sample["pc"] for sample in batch])
     
     # Handle variable number of bounding boxes
     bbox3d_batch = [sample['bbox3d'] for sample in batch]
