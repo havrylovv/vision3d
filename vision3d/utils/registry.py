@@ -1,4 +1,7 @@
 """Registry for managing various components in the Vision3D framework."""
+from vision3d.utils.logger import configure_logger
+
+logger = configure_logger(__name__.split(".")[-1])
 
 class Registry:
     def __init__(self, name):
@@ -27,9 +30,12 @@ class Registry:
         cls = self.get(cfg['type'])
         if cls is None:
             raise KeyError(f"{cfg['type']} is not registered in {self._name}")
+        logger.info(f"Building {cls.__name__} from {self._name} registry.")
         return cls(**{k: v for k, v in cfg.items() if k != 'type'})
     
 
+# Define registries for different components
 MODELS = Registry('models')
 DATASETS = Registry('datasets')
 LOSSES = Registry('losses')
+HOOKS = Registry('hooks')
