@@ -1,7 +1,7 @@
 import torch
 from torch.optim import Optimizer
 from torch.optim.lr_scheduler import _LRScheduler
-from vision3d.utils.registry import MODELS, LOSSES, DATASETS, HOOKS, Registry
+from vision3d.utils.registry import MODELS, LOSSES, DATASETS, HOOKS, UTILS, Registry
 
 def build_from_cfg(cfg: dict, registry: Registry) -> object:
     return registry.build(cfg)
@@ -17,6 +17,9 @@ def build_dataset(cfg) -> object:
 
 def build_hook(cfg) -> object:
     return build_from_cfg(cfg, HOOKS)
+
+def build_utils(cfg) -> object:
+    return build_from_cfg(cfg, UTILS)
 
 def build_optimizer(cfg: dict, params) -> Optimizer:
     """Builds an optimizer from the given configuration.
