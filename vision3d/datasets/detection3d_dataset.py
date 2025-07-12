@@ -11,6 +11,8 @@ import torch.nn.functional as F
 import logging
 from vision3d.utils.logger import configure_logger
 from vision3d.utils.registry import DATASETS
+from vision3d.utils.bbox_converter import reorder_corners_pca, corners_to_oob
+
 
 logger = configure_logger(__name__.split(".")[-1], logging.INFO)
 
@@ -31,8 +33,10 @@ class Detection3DDataset(Dataset):
         dataset_root: str,
         split: str = 'train',
         transform: Optional[Dict[str, transforms.Compose]] = dict(),
-        return_sample_id: bool = False
-    ):
+        return_sample_id: bool = False, 
+        fix_bbox_corners_order: bool = True,
+        bbox_corners_to_oob: bool = False,
+    ) -> None:
         """
         Initialize the dataset.
         
@@ -41,14 +45,17 @@ class Detection3DDataset(Dataset):
             split: 'train', 'val', or 'test'
             transform: dictionary of transformations to apply to RGB images, point clouds, etc
                     Supported keys: 'rgb', 'pc', 'mask', 'bbox3d'
-            normalize_pc: Whether to normalize point cloud coordinates
-            max_points: Maximum number of points to sample from point cloud
             return_sample_id: Whether to return sample IDs
+            fix_bbox_corners_order: Whether to fix the order of bounding box corners to enforce a consistent orientation
+            bbox_corners_to_oob: Whether to convert bounding box corners to oriented bounding boxes (OOB)
+                                Map: [8,3] -> [10] of [size, center, quaternion]
         """
         self.dataset_root = Path(dataset_root)
         self.split = split
         self.transform = transform
         self.return_sample_id = return_sample_id
+        self.fix_bbox_corners_order = fix_bbox_corners_order
+        self.bbox_corners_to_oob = bbox_corners_to_oob
 
         assert self.split in ['train', 'val', 'test'], f"Split must be one of ['train', 'val', 'test'], but got '{self.split}'"
         assert self.transform.keys() <= {'rgb', 'pc', 'mask', 'bbox3d'}, "Transform keys must be a subset of {'rgb', 'pc', 'mask', 'bbox3d'}"
@@ -112,6 +119,14 @@ class Detection3DDataset(Dataset):
         if "bbox3d" in self.transform:
             bbox3d = self.transform["bbox3d"](bbox3d)
 
+        if self.fix_bbox_corners_order:
+            # Reorder bounding box corners using PCA to enforce a consistent orientation
+            bbox3d = reorder_corners_pca(bbox3d)
+
+        if self.bbox_corners_to_oob:
+            # Convert bounding box corners to oriented bounding boxes (OOB)
+            bbox3d = corners_to_oob(bbox3d)
+
         # Prepare output
         sample = {
             'rgb': rgb,
@@ -170,9 +185,11 @@ def collate_fn(batch: List[Dict[str, Any]]) -> Dict[str, Any]:
     # Stack RGB images (assuming same size after transforms)
     rgb_batch = torch.stack([sample['rgb'] for sample in batch])
     #rgb_batch = [sample['rgb'] for sample in batch]  # List of tensors
-    # Stack masks (assuming same size)
+    
+
     #mask_batch = torch.stack([sample['mask'] for sample in batch])
     mask_batch = [sample['mask'] for sample in batch]
+
     # Handle variable-size point clouds
     #pc_batch = [sample['pc'] for sample in batch]
     pc_batch = torch.stack([sample["pc"] for sample in batch])
@@ -192,26 +209,6 @@ def collate_fn(batch: List[Dict[str, Any]]) -> Dict[str, Any]:
         result['sample_id'] = [sample['sample_id'] for sample in batch]
     
     return result
-
-def create_transforms_v1(split: str = 'train') -> transforms.Compose:
-    """
-    Create image transforms for training or validation.
-    
-    Args:
-        split: 'train' or 'val'/'test'
-        
-    Returns:
-        Composed transforms
-    """
-    if split == 'train':
-        # Training transforms with augmentation
-        transform = transforms.Compose([
-            transforms.Resize((224, 224)),
-            transforms.RandomHorizontalFlip(p=0.5),
-            transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])])
-        return transform
 
 
 def create_transforms_modular_test():
@@ -233,7 +230,7 @@ def test():
     split = "train"
     transform = create_transforms_modular_test()
     
-    dataset = Detection3DDataset(dataset_root=dataset_root, split=split, transform=transform, return_sample_id=True)
+    dataset = Detection3DDataset(dataset_root=dataset_root, split=split, transform=transform, return_sample_id=True, fix_bbox_corners_order=True, bbox_corners_to_oob=True)
     dataloader = DataLoader(dataset, batch_size=2, shuffle=True, collate_fn=collate_fn)
     
     for batch in dataloader:
