@@ -100,9 +100,20 @@ class Evaluator:
         results = {}
         for metric in self.metrics:
             metric_results = metric.compute()
-            # Use metric class name as key if no explicit name
-            metric_name = getattr(metric, 'name', metric.__class__.__name__)
-            results[metric_name] = metric_results
+            # Check if metric has a custom name, otherwise use class name
+            if hasattr(metric, 'name') and metric.name:
+                metric_name = metric.name
+            else:
+                metric_name = metric.__class__.__name__
+            
+            # Handle different types of metric results
+            if isinstance(metric_results, dict):
+                # If metric returns a dict, add each key-value pair directly
+                for key, value in metric_results.items():
+                    results[key] = value
+            else:
+                # If metric returns a single value, use metric name as key
+                results[metric_name] = metric_results
         return results
     
     def evaluate_dataloader(

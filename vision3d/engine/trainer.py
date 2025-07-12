@@ -22,6 +22,7 @@ class Trainer:
         hooks: Optional[List[Hook]] = None,
         validate_every: int = 1,
         evaluator: Optional[Evaluator] = None,
+        wandb_logger: Optional = None,  
     ) -> None:
         self.model = model.to(device)
         self.train_loader = train_loader
@@ -33,11 +34,16 @@ class Trainer:
         self.hooks = hooks or []
         self.validate_every = validate_every
         self.evaluator = evaluator
+        self.wandb_logger = wandb_logger  
 
         self.current_epoch = 0
         self.last_train_loss = None
         self.last_val_step_loss = None
         self.last_val_metrics = None
+        
+        # Watch model if wandb is enabled
+        if self.wandb_logger and self.wandb_logger.is_enabled():
+           self.wandb_logger.watch_model(self.model)
 
     def run(self) -> None:
         for epoch in range(self.max_epochs):
@@ -52,6 +58,15 @@ class Trainer:
 
             if self.scheduler:
                 self.scheduler.step()
+                
+                # Log learning rate to wandb
+                if self.wandb_logger and self.wandb_logger.is_enabled():
+                    current_lr = self.scheduler.get_last_lr()[0]
+                    self.wandb_logger.log_metrics(
+                        {"learning_rate": current_lr},
+                        step=epoch,
+                        commit=False
+                    )
 
             self.current_epoch = epoch
 
@@ -107,6 +122,15 @@ class Trainer:
                     print(f"  {metric_name}_{sub_metric}: {value:.4f}")
             else:
                 print(f"  {metric_name}: {metric_values:.4f}")
+        
+        # Log validation metrics to wandb
+        if self.wandb_logger and self.wandb_logger.is_enabled():
+            self.wandb_logger.log_metrics(
+                metrics=self.last_val_metrics,
+                step=epoch,
+                prefix="val_metrics",
+                commit=False
+            )
 
     def _call_hooks(self, method_name: str, index: int) -> None:
         for hook in self.hooks:

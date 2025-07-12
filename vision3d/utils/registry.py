@@ -1,5 +1,5 @@
 """Registry for managing various components in the Vision3D framework."""
-from vision3d.utils.logger import configure_logger
+from vision3d.utils.logging import configure_logger
 
 logger = configure_logger(__name__.split(".")[-1])
 

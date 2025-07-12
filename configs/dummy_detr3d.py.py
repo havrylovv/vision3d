@@ -3,6 +3,10 @@ from torchvision import transforms
 import torch.nn.functional as F
 from vision3d.datasets.detection3d_dataset import collate_fn
 
+
+use_wandb=True
+wandb_project_name="vision3d"
+
 train_transforms = dict(
     rgb=transforms.Compose([
         transforms.Resize((224, 224)),

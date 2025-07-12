@@ -4,7 +4,7 @@ from typing import Optional
 from vision3d.hooks import Hook
 from vision3d.engine.trainer import Trainer
 
-from vision3d.utils.logger import configure_logger
+from vision3d.utils.logging import configure_logger
 from vision3d.utils.registry import HOOKS
 
 logger = configure_logger(__name__.split('.')[-1])

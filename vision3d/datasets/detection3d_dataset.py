@@ -9,7 +9,7 @@ from torch.utils.data import Dataset, DataLoader
 import torchvision.transforms as transforms
 import torch.nn.functional as F
 import logging
-from vision3d.utils.logger import configure_logger
+from vision3d.utils.logging import configure_logger
 from vision3d.utils.registry import DATASETS
 from vision3d.utils.bbox_converter import reorder_corners_pca, corners_to_obb
 
