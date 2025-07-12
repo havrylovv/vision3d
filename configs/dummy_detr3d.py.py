@@ -22,6 +22,8 @@ train_dataset = dict(
     split="train",
     transform=train_transforms,
     return_sample_id=True,
+    fix_bbox_corners_order=True,
+    bbox_corners_to_oob=True,
 )
 
 val_dataset = dict(
@@ -30,6 +32,8 @@ val_dataset = dict(
     split="val",
     transform=train_transforms,
     return_sample_id=True,
+    fix_bbox_corners_order=True,
+    bbox_corners_to_oob=True,
 )
 
 model = dict(
@@ -39,11 +43,14 @@ model = dict(
     backbone_args=dict(out_channels=256),
     transformer_args=dict(d_model=256, nhead=8, num_encoder_layers=6, num_decoder_layers=6),
     criterion=dict(
-        type="MultiLoss3D",
-        matcher_cfg=dict(type="HungarianMatcher3D", cls_weight=1, bbox_weight=5),
-        weight_dict={'loss_bbox': 5, 'loss_ce': 1}
-    )
+        type="MultiLoss3D_OBB",
+        matcher_cfg=dict(
+            type="HungarianMatcher3D_OBB",
+        )
+    ),
+    predict_oob=True,
 )
+
  
 
 hooks = [

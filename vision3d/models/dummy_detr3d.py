@@ -46,7 +46,9 @@ class DummyDETR3D(nn.Module):
                 hidden_dim=256,
                 backbone_args: dict = {'out_channels': 256},
                 transformer_args: dict = {'d_model': 256, 'nhead': 8, 'num_encoder_layers': 6, 'num_decoder_layers': 6},
-                criterion=dict):
+                criterion=dict,
+                predict_oob=False,
+                ):
         super().__init__()
         
         # Model components
@@ -55,11 +57,18 @@ class DummyDETR3D(nn.Module):
         self.pos_encoder = PositionalEncoding(hidden_dim)
         self.transformer = nn.Transformer(**transformer_args)
         self.query_embed = nn.Embedding(num_queries, hidden_dim)
-        self.bbox_embed = nn.Linear(hidden_dim, 8 * 3)
+
+        if not predict_oob:
+            self.bbox_embed = nn.Linear(hidden_dim, 8 * 3)
+        else:
+            self.bbox_embed = nn.Linear(hidden_dim, 10)     # [center, size, quaternion]
+
         self.confidence_head = nn.Linear(hidden_dim, 2)
 
         self.num_queries = num_queries
         self.hidden_dim = hidden_dim
+        self.predict_oob = predict_oob
+
         self._reset_parameters()
         self.criterion = build_loss(criterion)
 
@@ -80,22 +89,27 @@ class DummyDETR3D(nn.Module):
         tgt = torch.zeros_like(query_embed)
         hs = self.transformer(src, tgt)
         hs = hs.transpose(0, 1)
-        pred_bboxes = self.bbox_embed(hs).view(B, -1, 8, 3)
+
+        if not self.predict_oob:
+            pred_bboxes = self.bbox_embed(hs).view(B, -1, 8, 3)
+        else: 
+            pred_bboxes = self.bbox_embed(hs).view(B, -1, 10)
+
         pred_logits = self.confidence_head(hs)
         return {'pred_bbox3d': pred_bboxes, 'pred_logits': pred_logits}
     
-    def train_step(self, data, optimizer):
+    def train_step(self, inputs, targets, optimizer):
         self.train()
         optimizer.zero_grad()
-        outputs = self(data['rgb']) # [B, num_queries, 8, 3], [B, num_queries, 2]
-        losses = self.criterion(outputs, data['bbox3d'])
+        outputs = self(inputs['rgb'])                       # [B, num_queries, 8, 3], [B, num_queries, 2]
+        losses = self.criterion(outputs, targets)
         losses['total_loss'].backward()
         optimizer.step()
         return losses
 
-    def evaluate(self, data):
+    def evaluate(self, inputs, targets):
         self.eval()
         with torch.no_grad():
-            outputs = self(data['rgb'])
-            losses = self.criterion(outputs, data['bbox3d'])
-        return outputs, losses
+            outputs = self(inputs['rgb'])
+            losses = self.criterion(outputs, targets)
+        return outputs, losses  

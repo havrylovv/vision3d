@@ -52,11 +52,12 @@ class Trainer:
     def _train_one_epoch(self, epoch: int) -> None:
         self.model.train()
 
-        for step, batch in enumerate(self.train_loader):
-            batch = {k: to_device(v, self.device) for k, v in batch.items()}
+        for step, (inputs, targets) in enumerate(self.train_loader):
+            inputs = {k: to_device(v, self.device) for k, v in inputs.items()}
+            targets = {k: to_device(v, self.device) for k, v in targets.items()}
 
             self._call_hooks("before_train_step", step)
-            loss = self.model.train_step(batch, self.optimizer)
+            loss = self.model.train_step(inputs, targets, self.optimizer)
             # used to store the last loss for hook callbacks
             self.last_train_loss = loss
             self._call_hooks("after_train_step", step)
@@ -65,9 +66,11 @@ class Trainer:
         self.model.eval()
 
         with torch.no_grad():
-            for step, batch in enumerate(self.val_loader):
-                batch = {k: to_device(v, self.device) for k, v in batch.items()}
-                loss = self.model.evaluate(batch)
+            for step, (inputs, target) in enumerate(self.val_loader):
+                
+                inputs = {k: to_device(v, self.device) for k, v in inputs.items()}
+                target = {k: to_device(v, self.device) for k, v in target.items()}
+                outs, loss = self.model.evaluate(inputs, target)
 
                 self.last_val_step_loss = loss
                 self._call_hooks("after_val_step", step)

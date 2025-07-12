@@ -110,7 +110,7 @@ def reorder_corners_pca(boxes: Union[Tensor, np.ndarray]) -> torch.Tensor:
     reordered_boxes = torch.from_numpy(reordered_boxes_np).to(boxes.device)
     return reordered_boxes
 
-def corners_to_oob(corners: Union[Tensor, np.ndarray]) -> torch.Tensor:
+def corners_to_obb(corners: Union[Tensor, np.ndarray]) -> torch.Tensor:
     """
     Convert 8 corners of 3D bbox to parametric representation of Oriented Bounding Boxes. 
     Structure: [center, size, quaternion]
@@ -119,7 +119,7 @@ def corners_to_oob(corners: Union[Tensor, np.ndarray]) -> torch.Tensor:
         corners: (B, 8, 3) array of corner coordinates
         
     Returns:
-        oob: (B, 10) array [center_x, center_y, center_z, size_x, size_y, size_z, qw, qx, qy, qz]
+        obb: (B, 10) array [center_x, center_y, center_z, size_x, size_y, size_z, qx, qy, qz, qw]
     """
     if isinstance(corners, torch.Tensor):
         device = corners.device
@@ -133,11 +133,11 @@ def corners_to_oob(corners: Union[Tensor, np.ndarray]) -> torch.Tensor:
         corners = corners[np.newaxis, ...]  
     
     B = corners.shape[0]
-    oob = np.zeros((B, 10))
+    obb = np.zeros((B, 10))
     
     # Calculate centers
     centers = np.mean(corners, axis=1)  # (B, 3)
-    oob[:, 0:3] = centers
+    obb[:, 0:3] = centers
     
     # Get edge vectors for each batch
     x_vecs = corners[:, 1] - corners[:, 0]  # (B, 3)
@@ -149,9 +149,9 @@ def corners_to_oob(corners: Union[Tensor, np.ndarray]) -> torch.Tensor:
     heights = np.linalg.norm(y_vecs, axis=1)  # (B,)
     depths = np.linalg.norm(z_vecs, axis=1)   # (B,)
     
-    oob[:, 3] = widths
-    oob[:, 4] = heights
-    oob[:, 5] = depths
+    obb[:, 3] = widths
+    obb[:, 4] = heights
+    obb[:, 5] = depths
     
     # Calculate rotation matrices
     rotation_matrices = np.zeros((B, 3, 3))
@@ -173,12 +173,11 @@ def corners_to_oob(corners: Union[Tensor, np.ndarray]) -> torch.Tensor:
     
     # Convert rotation matrices to quaternions using scipy
     quaternions = R.from_matrix(rotation_matrices).as_quat()  # (B, 4) [x, y, z, w]
-    # Convert from scipy format [x, y, z, w] to [w, x, y, z]
-    oob[:, 6:10] = np.column_stack([quaternions[:, 3], quaternions[:, 0:3]])
+    obb[:, 6:10] = quaternions
 
-    return torch.from_numpy(oob).to(device)
+    return torch.from_numpy(obb).to(device)
 
-def oob_to_corners(obb: Union[Tensor, np.ndarray]) -> torch.Tensor:
+def obb_to_corners(obb: Union[Tensor, np.ndarray]) -> torch.Tensor:
     """
     Convert Oriented Bounding Box to 8 corners representatoin. Ensures specific corner ordering.
     Order:
@@ -192,7 +191,7 @@ def oob_to_corners(obb: Union[Tensor, np.ndarray]) -> torch.Tensor:
         - 7: Top-left-up
     
     Args:
-        obb: (B, 10) array [center_x, center_y, center_z, size_x, size_y, size_z, qw, qx, qy, qz]
+        obb: (B, 10) array [center_x, center_y, center_z, size_x, size_y, size_z, qx, qy, qz, qw]
         
     Returns:
         corners: (B, 8, 3) array of corner coordinates
@@ -213,12 +212,10 @@ def oob_to_corners(obb: Union[Tensor, np.ndarray]) -> torch.Tensor:
     # Extract parameters
     centers = obb[:, 0:3]      # (B, 3)
     sizes = obb[:, 3:6]        # (B, 3)
-    quaternions = obb[:, 6:10] # (B, 4)
+    quaternions = obb[:, 6:10] # (B, 4)     #  [qx, qy, qz, qw]
     
     # Convert quaternions to rotation matrices using scipy
-    # Convert from [w, x, y, z] to scipy format [x, y, z, w]
-    scipy_quats = np.column_stack([quaternions[:, 1:4], quaternions[:, 0]])  # (B, 4)
-    rotation_matrices = R.from_quat(scipy_quats).as_matrix()  # (B, 3, 3)
+    rotation_matrices = R.from_quat(quaternions).as_matrix()  # (B, 3, 3)
     
     # Half dimensions
     half_sizes = sizes / 2  # (B, 3)
@@ -261,11 +258,11 @@ def orthonormalize_basis(x, y, z):
 Old example usage 
 original_bbox3d = bbox3d.copy()  # Keep original for comparison
 reordered_bboxes = reorder_corners_pca(original_bbox3d)
-oob = corners_to_oob(reordered_bboxes)
-print(f"OOB Shape: {oob.shape}")
-reconstructed_oob = oob_to_corners(oob)
-print(f"Reconstructed Corners Shape: {reconstructed_oob.shape}")
+obb = corners_to_obb(reordered_bboxes)
+print(f"obb Shape: {obb.shape}")
+reconstructed_obb = obb_to_corners(obb)
+print(f"Reconstructed Corners Shape: {reconstructed_obb.shape}")
 
-compare_bboxes(reordered_bboxes, reconstructed_oob, colors=['blue', 'red'])
+compare_bboxes(reordered_bboxes, reconstructed_obb, colors=['blue', 'red'])
 
 """

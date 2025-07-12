@@ -96,4 +96,5 @@ if __name__ == "__main__":
 
 """usage example:
 python vision3d/scripts/train.py --config ./vision3d/configs/dummy.py --save_dir ./logs/dummy
+python scripts/train.py --config /home/hao1rng/sec_proj/vision3d/configs/dummy_detr3d.py.py --save_dir ./logs/dummy
 """

@@ -11,7 +11,7 @@ import torch.nn.functional as F
 import logging
 from vision3d.utils.logger import configure_logger
 from vision3d.utils.registry import DATASETS
-from vision3d.utils.bbox_converter import reorder_corners_pca, corners_to_oob
+from vision3d.utils.bbox_converter import reorder_corners_pca, corners_to_obb
 
 
 logger = configure_logger(__name__.split(".")[-1], logging.INFO)
@@ -78,12 +78,10 @@ class Detection3DDataset(Dataset):
         Get a sample from the dataset.
         
         Returns:
-            Dictionary containing:
-            - 'rgb': RGB image tensor [C, H, W]
-            - 'pc': Point cloud tensor [3, H, W] (x, y, z)
-            - 'mask': Segmentation mask tensor [num_objects, H, W]
-            - 'bbox3d': 3D bounding boxes tensor [num_objects, 8, 3] (x, y, z)
-            - 'sample_id': Sample ID (if return_sample_id=True)
+            inputs: Dictionary with 'rgb' (Tensor), 'pc' (Tensor), and optionally 'sample_id' (str)
+            targets: Dictionary with 'mask' (Tensor), 'bbox3d' (Tensor), 'labels' (Tensor), and optionally 'sample_id' (str)
+        Args:
+            idx: Sample index
         """
         sample_id = self.sample_ids[idx]
         sample_path = self.dataset_root / self.split / sample_id
@@ -125,20 +123,26 @@ class Detection3DDataset(Dataset):
 
         if self.bbox_corners_to_oob:
             # Convert bounding box corners to oriented bounding boxes (OOB)
-            bbox3d = corners_to_oob(bbox3d)
+            bbox3d = corners_to_obb(bbox3d)
 
         # Prepare output
-        sample = {
-            'rgb': rgb,
-            'pc': pc,
-            'mask': mask,
-            'bbox3d': bbox3d
+        inputs = {
+            'rgb': rgb.to(dtype=torch.float32),
+            'pc': pc.to(dtype=torch.float32),
         }
+
+        targets = {
+            'mask': mask,
+            'bbox3d': bbox3d.to(dtype=torch.float32),
+            'labels': torch.ones(bbox3d.shape[0], dtype=torch.long) # class 0 - background, class 1 - object
+        }   
+
         
         if self.return_sample_id:
-            sample['sample_id'] = sample_id
+            inputs['sample_id'] = sample_id
+            targets['sample_id'] = sample_id
         
-        return sample
+        return inputs, targets
     
     def get_sample_info(self, idx: int) -> Dict[str, Any]:
         """
@@ -172,43 +176,43 @@ class Detection3DDataset(Dataset):
         
         return info
 
-def collate_fn(batch: List[Dict[str, Any]]) -> Dict[str, Any]:
+
+def collate_fn(batch: List[Tuple[Dict[str, Any], Dict[str, Any]]]
+                     ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     """
-    Custom collate function for batching samples with variable sizes.
-    
+    Collate function for batching samples with possibly variable-sized tensors
+    like masks or 3D bounding boxes.
+
     Args:
-        batch: List of samples from dataset
-        
+        batch: A list of (inputs, targets) tuples.
+
     Returns:
-        Batched data dictionary
+        A tuple (batched_inputs, batched_targets)
     """
-    # Stack RGB images (assuming same size after transforms)
-    rgb_batch = torch.stack([sample['rgb'] for sample in batch])
-    #rgb_batch = [sample['rgb'] for sample in batch]  # List of tensors
-    
+    # Unzip list of tuples
+    inputs_list, targets_list = zip(*batch)
 
-    #mask_batch = torch.stack([sample['mask'] for sample in batch])
-    mask_batch = [sample['mask'] for sample in batch]
-
-    # Handle variable-size point clouds
-    #pc_batch = [sample['pc'] for sample in batch]
-    pc_batch = torch.stack([sample["pc"] for sample in batch])
-    
-    # Handle variable number of bounding boxes
-    bbox3d_batch = [sample['bbox3d'] for sample in batch]
-    
-    result = {
-        'rgb': rgb_batch,
-        'pc': pc_batch, 
-        'mask': mask_batch,
-        'bbox3d': bbox3d_batch
+    # Collate inputs
+    batched_inputs = {
+        'rgb': torch.stack([item['rgb'] for item in inputs_list], dim=0),
+        'pc': torch.stack([item['pc'] for item in inputs_list], dim=0),
     }
-    
-    # Include sample IDs if present
-    if 'sample_id' in batch[0]:
-        result['sample_id'] = [sample['sample_id'] for sample in batch]
-    
-    return result
+
+    # Optional sample_id
+    if 'sample_id' in inputs_list[0]:
+        batched_inputs['sample_id'] = [item['sample_id'] for item in inputs_list]
+
+    # Collate targets
+    batched_targets = {
+        'mask': [target['mask'] for target in targets_list],           # list of [num_objects_i, H, W]
+        'bbox3d': [target['bbox3d'] for target in targets_list],       # list of [num_objects_i, 8, 3] or [num_objects_i, 10] (OOB)
+        'labels': [target['labels'] for target in targets_list],       # list of [num_objects_i]
+    }
+
+    if 'sample_id' in targets_list[0]:
+        batched_targets['sample_id'] = [target['sample_id'] for target in targets_list]
+
+    return batched_inputs, batched_targets
 
 
 def create_transforms_modular_test():
@@ -234,12 +238,13 @@ def test():
     dataloader = DataLoader(dataset, batch_size=2, shuffle=True, collate_fn=collate_fn)
     
     for batch in dataloader:
-        print("RGB batch shape:", batch['rgb'][0].shape, "Number of images:", len(batch['rgb']))
-        print("Point cloud batch size:",  batch['pc'][0].shape, "Number of images:", len(batch['pc']))
-        print("Mask batch shape:", batch['mask'][0].shape, "Number of masks:", len(batch['mask']))
-        print("Bounding boxes batch size:",   batch['bbox3d'][0].shape, "Number of boxes:", len(batch['bbox3d']))
-        if 'sample_id' in batch:
-            print("Sample IDs:", batch['sample_id'])
+        inputs, targets = batch
+        print("Batch inputs:", {k: v.shape if isinstance(v, torch.Tensor) else v for k, v in inputs.items()})
+        print("Batch targets:", {k: v.shape if isinstance(v, torch.Tensor) else len(v) for k, v in targets.items()})
+
+        print(f"Targets: mask shapes: {[mask.shape for mask in targets['mask']]}")
+        print(f"Targets: bbox3d shapes: {[bbox.shape for bbox in targets['bbox3d']]}")
+        print(f"Targets: labels shapes: {[label.shape for label in targets['labels']]}")
         break
 
 if __name__ == "__main__":

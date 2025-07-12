@@ -13,20 +13,22 @@ class Vision3DModel(ABC, nn.Module):
         pass
 
     @abstractmethod
-    def train_step(self, data, optimizer):
+    def train_step(self, inputs: dict, targets: dict, optimizer):
         """
         Perform a single training step.
         Args:
-            data: The input data for training.
+            inputs: Dictionary of input data.
+            targets: Dictionary of target data.
             optimizer: The optimizer used for updating model parameters.
         """
         pass
 
     @abstractmethod
-    def evaluate(self, data):
+    def evaluate(self, inputs: dict, targets: dict,):
         """
         Evaluate the model on the given data.
         Args:
-            data: The input data for evaluation.
+            inputs: Dictionary of input data.
+            targets: Dictionary of target data.
         """
         pass
