@@ -5,7 +5,7 @@ from torch.utils.data import DataLoader
 from vision3d.utils.config import load_config
 from vision3d.engine.trainer import Trainer
 from vision3d.utils.misc import seed_everything
-from vision3d.utils.build import build_model, build_dataset, build_hook, build_optimizer, build_scheduler
+from vision3d.utils.build import build_model, build_dataset, build_hook, build_optimizer, build_scheduler, build_utils
 from vision3d.datasets.detection3d_dataset import collate_fn
 from pprint import pprint
 
@@ -71,6 +71,8 @@ def main():
     optimizer = build_optimizer(cfg.optimizer, model.parameters())
     scheduler = build_scheduler(cfg.scheduler, optimizer) if "scheduler" in cfg else None
     hooks = [build_hook(h) for h in cfg.get("hooks", [])]
+    evaluator = build_utils(cfg.evaluator) if "evaluator" in cfg else None
+    
 
     trainer = Trainer(
         model=model,
@@ -81,6 +83,7 @@ def main():
         device=cfg.get("device", "cuda"),
         max_epochs=cfg.train.epochs,
         hooks=hooks,
+        evaluator=evaluator,
     )
 
     logger.info(f"Training configuration: {pprint(cfg, indent=4)}")
