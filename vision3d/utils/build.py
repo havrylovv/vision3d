@@ -1,7 +1,9 @@
+"""Basic utilities for building components in Vision3D using registries."""
+
 import torch
 from torch.optim import Optimizer
 from torch.optim.lr_scheduler import _LRScheduler
-from vision3d.utils.registry import MODELS, LOSSES, DATASETS, HOOKS, UTILS, Registry
+from vision3d.utils.registry import MODELS, LOSSES, DATASETS, HOOKS, METRICS, UTILS, Registry
 
 def build_from_cfg(cfg: dict, registry: Registry) -> object:
     return registry.build(cfg)
@@ -17,6 +19,9 @@ def build_dataset(cfg) -> object:
 
 def build_hook(cfg) -> object:
     return build_from_cfg(cfg, HOOKS)
+
+def build_metric(cfg) -> object:
+    return build_from_cfg(cfg, METRICS)
 
 def build_utils(cfg) -> object:
     return build_from_cfg(cfg, UTILS)

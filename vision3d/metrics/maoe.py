@@ -2,28 +2,24 @@ import torch
 import numpy as np
 from typing import List, Dict, Any
 from .base import Metric
-from .ops.iou3d import IoU3D as IoU3D_Ops
-from vision3d.utils.bbox_converter import obb_to_corners
 from vision3d.utils.registry import METRICS
 
 @METRICS.register()
-class IoU3DMetric(Metric):
+class mAOEMetric(Metric):
     """
-    3D Intersection over Union metric for 3D object detection.
+    Mean Average Orientation Error metric for 3D object detection.
     
-    Computes the 3D IoU between predicted and ground truth
-    bounding boxes. Assumes predictions and targets are already matched.
+    Computes the orientation error between predicted and ground truth
+    bounding box orientations. Assumes predictions and targets are already matched.
     """
     
     def __init__(self):
-        """Initialize IoU3D metric."""
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.iou3d = IoU3D_Ops(self.device)
+        """Initialize mAOE metric."""
         self.reset()
     
     def reset(self):
         """Reset the metric to its initial state."""
-        self.iou_values = []
+        self.orientation_errors = []
         self.num_samples = 0
     
     def update(self, preds: Dict[str, List[torch.Tensor]], targets: Dict[str, List[torch.Tensor]]):
@@ -41,6 +37,7 @@ class IoU3DMetric(Metric):
                     'labels': List of torch tensors, each of shape (N, 1)
         """
         pred_bboxes = preds['pred_bbox3d']  # List of (N, 10)
+        
         gt_bboxes = targets['bbox3d']       # List of (N, 10)
         
         assert len(pred_bboxes) == len(gt_bboxes), \
@@ -62,14 +59,37 @@ class IoU3DMetric(Metric):
             self.num_samples += 1
             return
         
-        # Convert bboxes to corner format for IoU computation
-        pred_corners = obb_to_corners(pred_bbox)  # (N, 8, 3)
-        gt_corners = obb_to_corners(gt_bbox)      # (N, 8, 3)
+        # Convert to numpy
+        pred_bbox_np = pred_bbox.detach().cpu().numpy()
+        gt_bbox_np = gt_bbox.detach().cpu().numpy()
         
-        # Compute 3D IoU
-        iou_values = self.iou3d.compute_iou_3d(pred_corners, gt_corners)  # (N,)
+        # Extract quaternions (qx, qy, qz, qw) - elements 6, 7, 8, 9
+        pred_quats = pred_bbox_np[:, 6:10]  # (N, 4)
+        gt_quats = gt_bbox_np[:, 6:10]      # (N, 4)
         
-        self.iou_values.extend(iou_values.tolist())
+        # Compute orientation error using quaternion angle difference
+        orientation_errors = []
+        for i in range(pred_quats.shape[0]):
+            pred_quat = pred_quats[i]  # (4,) - [qx, qy, qz, qw]
+            gt_quat = gt_quats[i]      # (4,) - [qx, qy, qz, qw]
+            
+            # Normalize quaternions
+            pred_quat = pred_quat / (np.linalg.norm(pred_quat) + 1e-6)
+            gt_quat = gt_quat / (np.linalg.norm(gt_quat) + 1e-6)
+            
+            # Compute the angle between quaternions
+            # Using the formula: angle = 2 * arccos(|q1 · q2|)
+            dot_product = np.abs(np.dot(pred_quat, gt_quat))
+            dot_product = np.clip(dot_product, 0.0, 1.0)  # Clamp to avoid numerical errors
+            
+            angle_error = 2 * np.arccos(dot_product)
+            
+            # Ensure angle is in [0, π] range
+            angle_error = min(angle_error, np.pi - angle_error)
+            
+            orientation_errors.append(angle_error)
+        
+        self.orientation_errors.extend(orientation_errors)
         self.num_samples += 1
     
     def compute(self) -> Dict[str, float]:
@@ -77,16 +97,16 @@ class IoU3DMetric(Metric):
         Compute and return the final metric values.
         
         Returns:
-            Dictionary containing the IoU3D score
+            Dictionary containing the mAOE score
         """
-        if len(self.iou_values) == 0:
+        if len(self.orientation_errors) == 0:
             return {
-                'IoU3D': 0.0,
+                'mAOE': float('inf'),
             }
         
-        # Compute mean 3D IoU
-        iou3d_score = np.mean(self.iou_values)
+        # Compute mean average orientation error
+        maoe_score = np.mean(self.orientation_errors)
         
         return {
-            'mIoU3D': iou3d_score,
+            'mAOE': maoe_score,
         }

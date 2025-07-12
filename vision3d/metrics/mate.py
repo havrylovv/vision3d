@@ -2,28 +2,24 @@ import torch
 import numpy as np
 from typing import List, Dict, Any
 from .base import Metric
-from .ops.iou3d import IoU3D as IoU3D_Ops
-from vision3d.utils.bbox_converter import obb_to_corners
 from vision3d.utils.registry import METRICS
 
 @METRICS.register()
-class IoU3DMetric(Metric):
+class mATEMetric(Metric):
     """
-    3D Intersection over Union metric for 3D object detection.
+    Mean Average Translation Error metric for 3D object detection.
     
-    Computes the 3D IoU between predicted and ground truth
-    bounding boxes. Assumes predictions and targets are already matched.
+    Computes the euclidean distance error between predicted and ground truth
+    bounding box centers. Assumes predictions and targets are already matched.
     """
     
     def __init__(self):
-        """Initialize IoU3D metric."""
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.iou3d = IoU3D_Ops(self.device)
+        """Initialize mATE metric."""
         self.reset()
     
     def reset(self):
         """Reset the metric to its initial state."""
-        self.iou_values = []
+        self.translation_errors = []
         self.num_samples = 0
     
     def update(self, preds: Dict[str, List[torch.Tensor]], targets: Dict[str, List[torch.Tensor]]):
@@ -41,6 +37,7 @@ class IoU3DMetric(Metric):
                     'labels': List of torch tensors, each of shape (N, 1)
         """
         pred_bboxes = preds['pred_bbox3d']  # List of (N, 10)
+        
         gt_bboxes = targets['bbox3d']       # List of (N, 10)
         
         assert len(pred_bboxes) == len(gt_bboxes), \
@@ -56,20 +53,23 @@ class IoU3DMetric(Metric):
         
         Args:
             pred_bbox: Predicted bounding boxes (N, 10)
-            gt_bbox: Ground truth bounding boxes (N, 10)
+            pred_logit: Predicted logits (N, num_classes)
         """
         if pred_bbox.shape[0] == 0 or gt_bbox.shape[0] == 0:
             self.num_samples += 1
             return
         
-        # Convert bboxes to corner format for IoU computation
-        pred_corners = obb_to_corners(pred_bbox)  # (N, 8, 3)
-        gt_corners = obb_to_corners(gt_bbox)      # (N, 8, 3)
+        # Convert to numpy
+        pred_bbox_np = pred_bbox.detach().cpu().numpy()
+        gt_bbox_np = gt_bbox.detach().cpu().numpy()
         
-        # Compute 3D IoU
-        iou_values = self.iou3d.compute_iou_3d(pred_corners, gt_corners)  # (N,)
+        # Extract center coordinates (cx, cy, cz) - first 3 elements
+        pred_centers = pred_bbox_np[:, :3]  # (N, 3)
+        gt_centers = gt_bbox_np[:, :3]      # (N, 3)
         
-        self.iou_values.extend(iou_values.tolist())
+        translation_errors = np.sqrt(np.sum((pred_centers - gt_centers) ** 2, axis=1))
+        self.translation_errors.extend(translation_errors.tolist())
+    
         self.num_samples += 1
     
     def compute(self) -> Dict[str, float]:
@@ -77,16 +77,17 @@ class IoU3DMetric(Metric):
         Compute and return the final metric values.
         
         Returns:
-            Dictionary containing the IoU3D score
+            Dictionary containing the mATE score
         """
-        if len(self.iou_values) == 0:
+        if len(self.translation_errors) == 0:
             return {
-                'IoU3D': 0.0,
+                'mATE': float('inf'),
             }
         
-        # Compute mean 3D IoU
-        iou3d_score = np.mean(self.iou_values)
+        # Compute mean average translation error
+        mate_score = np.mean(self.translation_errors)
         
         return {
-            'mIoU3D': iou3d_score,
+            'mATE': mate_score,
         }
+    

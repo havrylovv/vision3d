@@ -51,7 +51,18 @@ model = dict(
     predict_oob=True,
 )
 
- 
+
+evaluator = dict(
+    type="Evaluator",
+    matcher=dict(type="HungarianMatcher3D_OBB"),
+    metric_cfgs=[
+        dict(type="IoU3DMetric"),
+        dict(type="mAOEMetric"),
+        dict(type="mASEMetric"),
+        dict(type="mATEMetric"),
+    ],
+    device="cuda",
+)   
 
 hooks = [
     dict(type="LossLoggingHook",),
@@ -59,7 +70,7 @@ hooks = [
 ]
 
 train = dict(
-    batch_size=8,
+    batch_size=16,
     num_workers=4,
     epochs=100,
 )

@@ -2,28 +2,24 @@ import torch
 import numpy as np
 from typing import List, Dict, Any
 from .base import Metric
-from .ops.iou3d import IoU3D as IoU3D_Ops
-from vision3d.utils.bbox_converter import obb_to_corners
 from vision3d.utils.registry import METRICS
 
 @METRICS.register()
-class IoU3DMetric(Metric):
+class mASEMetric(Metric):
     """
-    3D Intersection over Union metric for 3D object detection.
+    Mean Average Scale Error metric for 3D object detection.
     
-    Computes the 3D IoU between predicted and ground truth
-    bounding boxes. Assumes predictions and targets are already matched.
+    Computes the scale error between predicted and ground truth
+    bounding box sizes. Assumes predictions and targets are already matched.
     """
     
     def __init__(self):
-        """Initialize IoU3D metric."""
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.iou3d = IoU3D_Ops(self.device)
+        """Initialize mASE metric."""
         self.reset()
     
     def reset(self):
         """Reset the metric to its initial state."""
-        self.iou_values = []
+        self.scale_errors = []
         self.num_samples = 0
     
     def update(self, preds: Dict[str, List[torch.Tensor]], targets: Dict[str, List[torch.Tensor]]):
@@ -41,6 +37,7 @@ class IoU3DMetric(Metric):
                     'labels': List of torch tensors, each of shape (N, 1)
         """
         pred_bboxes = preds['pred_bbox3d']  # List of (N, 10)
+        
         gt_bboxes = targets['bbox3d']       # List of (N, 10)
         
         assert len(pred_bboxes) == len(gt_bboxes), \
@@ -62,14 +59,32 @@ class IoU3DMetric(Metric):
             self.num_samples += 1
             return
         
-        # Convert bboxes to corner format for IoU computation
-        pred_corners = obb_to_corners(pred_bbox)  # (N, 8, 3)
-        gt_corners = obb_to_corners(gt_bbox)      # (N, 8, 3)
+        # Convert to numpy
+        pred_bbox_np = pred_bbox.detach().cpu().numpy()
+        gt_bbox_np = gt_bbox.detach().cpu().numpy()
         
-        # Compute 3D IoU
-        iou_values = self.iou3d.compute_iou_3d(pred_corners, gt_corners)  # (N,)
+        # Extract size coordinates (w, l, h) - elements 3, 4, 5
+        pred_sizes = pred_bbox_np[:, 3:6]  # (N, 3)
+        gt_sizes = gt_bbox_np[:, 3:6]      # (N, 3)
         
-        self.iou_values.extend(iou_values.tolist())
+        # Compute scale error using 1 - min(pred/gt, gt/pred) for each dimension
+        # This is the standard scale error metric used in 3D detection
+        scale_errors = []
+        for i in range(pred_sizes.shape[0]):
+            pred_size = pred_sizes[i]  # (3,)
+            gt_size = gt_sizes[i]      # (3,)
+            
+            # Avoid division by zero
+            gt_size = np.maximum(gt_size, 1e-6)
+            pred_size = np.maximum(pred_size, 1e-6)
+            
+            # Compute scale error for each dimension (w, l, h)
+            scale_ratios = np.minimum(pred_size / gt_size, gt_size / pred_size)
+            scale_error = 1 - np.mean(scale_ratios)  # Average across w, l, h
+            
+            scale_errors.append(scale_error)
+        
+        self.scale_errors.extend(scale_errors)
         self.num_samples += 1
     
     def compute(self) -> Dict[str, float]:
@@ -77,16 +92,16 @@ class IoU3DMetric(Metric):
         Compute and return the final metric values.
         
         Returns:
-            Dictionary containing the IoU3D score
+            Dictionary containing the mASE score
         """
-        if len(self.iou_values) == 0:
+        if len(self.scale_errors) == 0:
             return {
-                'IoU3D': 0.0,
+                'mASE': float('inf'),
             }
         
-        # Compute mean 3D IoU
-        iou3d_score = np.mean(self.iou_values)
+        # Compute mean average scale error
+        mase_score = np.mean(self.scale_errors)
         
         return {
-            'mIoU3D': iou3d_score,
+            'mASE': mase_score,
         }
