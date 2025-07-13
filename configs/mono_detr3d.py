@@ -54,7 +54,6 @@ model = dict(
         freeze=False,
         multiscale=True,
         output_dim=d_model,
-
     ),
     pc_encoder=dict(
         type="ResNetEncoder",
@@ -86,7 +85,7 @@ model = dict(
         num_classes=2,  
         hidden_dim=256,
     ),
-    mask_head=dict(    # Optional
+    mask_head=dict(     # Optional
         type="SimpleSegHead",
         in_channels=d_model,
         hidden_dim=256,
@@ -97,7 +96,8 @@ model = dict(
         type="MultiLoss3D_OBB",
         matcher_cfg=dict(
             type="HungarianMatcher3D_OBB",
-        )
+        ),
+        use_mask=True, 
     ),
 )   
 

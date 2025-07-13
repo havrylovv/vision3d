@@ -21,8 +21,10 @@ class MultiLoss3D_OBB(nn.Module):
     - IoU Loss for 3D overlap (geometry-aware)
     """
     
-    def __init__(self, matcher_cfg: dict, weight_dict: Optional[dict] = None):
+    def __init__(self, matcher_cfg: dict, weight_dict: Optional[dict] = None, use_mask: bool = False):
+
         super().__init__()
+        self.use_mask = use_mask
         self.matcher = build_utils(matcher_cfg)
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         
@@ -180,7 +182,7 @@ class MultiLoss3D_OBB(nn.Module):
         loss_quaternion = 0.0
         loss_focal = 0.0
 
-        if "pred_mask" in outputs and "mask" in targets:
+        if "pred_mask" in outputs and "mask" in targets and self.use_mask:
             loss_mask = 0.0
 
         
@@ -210,7 +212,7 @@ class MultiLoss3D_OBB(nn.Module):
             loss_quaternion += self.quaternion_loss(pred_quat, tgt_quat) * len(pred_idx)
             
             # Optional mask loss
-            if "pred_mask" in outputs and "mask" in targets:
+            if "pred_mask" in outputs and "mask" in targets and self.use_mask:
                 pred_masks = outputs['pred_mask'][batch_idx]   # [num_classes, H, W]
                 tgt_masks = targets['mask'][batch_idx]          # [num_objects, H, W]
                 loss_mask = self.mask_loss(pred_masks, tgt_masks)
@@ -238,7 +240,7 @@ class MultiLoss3D_OBB(nn.Module):
         losses['loss_quaternion'] = loss_quaternion / num_matched
         losses['loss_focal'] = loss_focal / batch_size
 
-        if "pred_mask" in outputs and "mask" in targets:
+        if "pred_mask" in outputs and "mask" in targets and self.use_mask:
             losses['loss_mask'] = loss_mask 
         
         # Compute total weighted loss
