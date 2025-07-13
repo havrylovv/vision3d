@@ -22,6 +22,7 @@ from torch.nn.init import xavier_uniform_, constant_, uniform_, normal_
 
 from vision3d.models.ops.modules import MSDeformAttn
 from torch.nn import MultiheadAttention 
+from vision3d.utils.registry import MODELS
 
 ### UTILITIES ###
 def generate_sine_position_embedding(pos_tensor: Tensor) -> Tensor:
@@ -79,7 +80,6 @@ def _get_clones(module: nn.Module, N: int) -> nn.ModuleList:
     """Create N identical copies of a module."""
     return nn.ModuleList([copy.deepcopy(module) for _ in range(N)])
 
-
 def _get_activation_fn(activation: str) -> callable:
     """Return an activation function given a string identifier."""
     activation_map = {
@@ -92,8 +92,6 @@ def _get_activation_fn(activation: str) -> callable:
         raise RuntimeError(f"Activation should be one of {list(activation_map.keys())}, got {activation}")
     
     return activation_map[activation]
-
-
 ### UTILITES: END ###
 
 
@@ -224,7 +222,6 @@ class VisualEncoder(nn.Module):
         
         return output
 
-
 class CrossAttentionBlock(nn.Module):
     """
     Cross-Attention Block with Multihead Attention and Feed-Forward Network.
@@ -266,7 +263,6 @@ class CrossAttentionBlock(nn.Module):
         
         return query
 
-
 class DecoderLayer(nn.Module):
     """
     Decoder layer with self-attention and cross-attention.
@@ -295,7 +291,7 @@ class DecoderLayer(nn.Module):
         
         return queries
     
-
+@MODELS.register()
 class SpatiallyAwareTransformer(nn.Module):
     """
     Spatially-Aware Transformer for object detection.
@@ -313,7 +309,7 @@ class SpatiallyAwareTransformer(nn.Module):
         cross_attn_layers: int = 3,
         query_dim: int = 256,
         num_queries: int = 100,
-        interpolate_dim: int = 512,
+        memory_pool_dim: int = 512,
         decoder_layers: int = 6
     ):
         """
@@ -333,7 +329,9 @@ class SpatiallyAwareTransformer(nn.Module):
             num_queries: Number of learnable queries.
         """
         super().__init__()
-        self.interpolate_dim = interpolate_dim
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        
+        self.memory_pool_dim = memory_pool_dim
 
         # Encoders for two modalities
         self.encoder1 = self._build_encoder(
@@ -342,7 +340,13 @@ class SpatiallyAwareTransformer(nn.Module):
         self.encoder2 = self._build_encoder(
             d_model, dim_feedforward, dropout, activation, num_feature_levels, nhead, enc_n_points, num_encoder_layers
         )
-        
+
+        # Adaptive pooling to reduce memory dimension   
+        self.memory_pool = nn.AdaptiveAvgPool1d(self.memory_pool_dim)
+        # Learnable weight for fusing features from two modalities
+        self.alpha = nn.Parameter(torch.tensor(0.5, device=self.device))  
+
+
         # Cross-attention layers between modalities
         self.cross_attn_blocks = nn.ModuleList([
             CrossAttentionBlock(d_model, nhead, dim_feedforward, dropout, activation) for _ in range(cross_attn_layers)
@@ -483,16 +487,16 @@ class SpatiallyAwareTransformer(nn.Module):
             lvl_pos_embed_flatten2, mask_flatten2
         )
 
-        # interpolate memory dimensions 
-        memory1 = F.interpolate(memory1.permute(0, 2, 1), size=self.interpolate_dim, mode='linear', align_corners=False).permute(0, 2, 1)
-        memory2 = F.interpolate(memory2.permute(0, 2, 1), size=self.interpolate_dim, mode='linear', align_corners=False).permute(0, 2, 1)
+        # Apply adaptive pooling to reduce memory dimension
+        memory1 = self.memory_pool(memory1.permute(0, 2, 1)).permute(0, 2, 1)
+        memory2 = self.memory_pool(memory2.permute(0, 2, 1 )).permute(0, 2, 1)
 
         # Apply cross-attention blocks
         for cross_attn_block in self.cross_attn_blocks:
             memory1 = cross_attn_block(memory1, memory2, memory2)
             memory2 = cross_attn_block(memory2, memory1, memory1)   
 
-        fused_memory = memory1 + memory2  
+        fused_memory = self.alpha * memory1 + (1 - self.alpha) * memory2
 
         # Convert query_embed to the expected input format for DecoderLayer
         queries = self.query_embed.unsqueeze(1).repeat(1, fused_memory.size(0), 1)  # (num_queries, batch_size, query_dim)
@@ -530,18 +534,18 @@ def test_transformer():
         cross_attn_layers=6,
         query_dim=d_model,
         num_queries=50,
-        interpolate_dim=512
+        memory_pool_dim=512
     ).to(device)
 
-
+    # masks: 0 - keep, 1 - ignore
     inputs1 = {
         "srcs": [torch.randn(batch_size, d_model, h, w).to(device) for h, w in feature_map_shapes],
-        "masks": [torch.ones(batch_size, h, w, dtype=torch.bool).to(device) for h, w in feature_map_shapes],
+        "masks": [torch.zeros(batch_size, h, w, dtype=torch.bool).to(device).bool() for h, w in feature_map_shapes],
         "pos_embeds": [torch.randn(batch_size, d_model, h, w).to(device) for h, w in feature_map_shapes],
     }
     inputs2 = {
         "srcs": [torch.randn(batch_size, d_model, h, w).to(device) for h, w in feature_map_shapes],
-        "masks": [torch.ones(batch_size, h, w, dtype=torch.bool).to(device) for h, w in feature_map_shapes],
+        "masks": [torch.zeros(batch_size, h, w, dtype=torch.bool).to(device).bool() for h, w in feature_map_shapes],
         "pos_embeds": [torch.randn(batch_size, d_model, h, w).to(device) for h, w in feature_map_shapes],
     }
 
