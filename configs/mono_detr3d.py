@@ -5,19 +5,21 @@ import torch.nn.functional as F
 seed = 12345
 epochs = 100
 
+target_hw = (224, 224)
+
 use_wandb=True
 wandb_project_name="vision3d"
 
 train_transforms = dict(
     rgb=transforms.Compose([
-        transforms.Resize((224, 224)),
+        transforms.Resize((target_hw)),
         transforms.ToTensor(),
     ]),
     pc=transforms.Compose([
-        transforms.Lambda(lambda x: F.interpolate(x.unsqueeze(0), size=(224, 224), mode='bilinear', align_corners=False).squeeze(0)),
+        transforms.Lambda(lambda x: F.interpolate(x.unsqueeze(0), size=(target_hw), mode='bilinear', align_corners=False).squeeze(0)),
     ]),
     mask=transforms.Compose([
-        transforms.Resize((224, 224)),
+        transforms.Resize((target_hw)),
     ])
 )
 
@@ -84,7 +86,13 @@ model = dict(
         num_classes=2,  
         hidden_dim=256,
     ),
-    mask_head=None,  # Optional, can be set to a valid mask head config
+    mask_head=dict(    # Optional
+        type="SimpleSegHead",
+        in_channels=d_model,
+        hidden_dim=256,
+        out_channels=1,  
+        target_hw=target_hw,  
+    ),  
     criterion=dict(
         type="MultiLoss3D_OBB",
         matcher_cfg=dict(
