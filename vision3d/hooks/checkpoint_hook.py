@@ -27,6 +27,12 @@ class CheckpointHook(Hook):
         self.save_best = save_best
         self.best_val_loss: Optional[float] = None
 
+    def set_save_dir(self, save_dir: str) -> None:
+        """Set the directory where checkpoints will be saved."""
+        self.output_dir = save_dir
+        os.makedirs(self.output_dir, exist_ok=True)
+        logger.info(f"Checkpoint output directory set to {self.output_dir}")
+        
     def after_train_epoch(self, epoch: int, trainer: Trainer) -> None:
         # Save regular checkpoint
         if (epoch + 1) % self.save_every == 0:

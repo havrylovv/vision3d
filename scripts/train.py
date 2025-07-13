@@ -34,7 +34,7 @@ def check_core_components(cfg):
         raise ValueError("Hooks configuration must be a list of dictionaries")
 
 def main():
-    timestamp = datetime.datetime.now().strftime("%Y:%m:%d_%H:%M:%S")
+    timestamp = datetime.datetime.now().strftime("%Y_%m_%d__%H_%M_%S")
     args = parse_args()
     cfg = load_config(args.config, return_edict=True)
 
@@ -89,7 +89,13 @@ def main():
     scheduler = build_scheduler(cfg.scheduler, optimizer) if "scheduler" in cfg else None
     hooks = []
     for h in cfg.get("hooks", []):
+        
         hook = build_hook(h)
+         # Inject save_dir into hooks that support it (like CheckpointHook)
+        if hasattr(hook, 'set_save_dir'):
+            hook.set_save_dir(save_dir)
+            logger.info(f"Injected save_dir into {hook.__class__.__name__}")
+        
         # Inject wandb_logger into hooks that support it
         if hasattr(hook, 'set_wandb_logger'):
             hook.set_wandb_logger(wandb_logger)
@@ -131,4 +137,5 @@ if __name__ == "__main__":
 """usage example:
 python vision3d/scripts/train.py --config ./vision3d/configs/dummy.py --save_dir ./logs/dummy
 python scripts/train.py --config /home/hao1rng/sec_proj/vision3d/configs/dummy_detr3d.py.py --save_dir ./logs/dummy
+python scripts/train.py --config /home/hao1rng/sec_proj/vision3d/configs/mono_detr3d.py --save_dir ./logs/mono_detr3d
 """
