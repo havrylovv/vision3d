@@ -4,9 +4,7 @@ import torch.nn.functional as F
 import numpy as np
 from typing import Dict, List, Optional, Tuple
 from vision3d.utils.build import build_utils
-from vision3d.utils.bbox_converter import obb_to_corners
 from vision3d.utils.registry import LOSSES
-from vision3d.metrics import IoU3D
 
 @LOSSES.register()
 class MultiLoss3D_OBB(nn.Module):
@@ -31,10 +29,9 @@ class MultiLoss3D_OBB(nn.Module):
         # Default weights based on common practices in 3D detection
         self.weight_dict = weight_dict or {
             'loss_center': 5.0,      # Center position loss
-            'loss_size': 2.0,        # Size regression loss
-            'loss_quaternion': 3.0,  # Quaternion orientation loss
+            'loss_size': 4.0,        # Size regression loss
+            'loss_quaternion': 4.0,  # Quaternion orientation loss
             'loss_focal': 2.0,       # Focal loss for classification
-            'loss_iou_3d': 4.0,      # 3D IoU loss
             'loss_depth': 1.0,       # Depth consistency loss
         }
         
@@ -46,7 +43,6 @@ class MultiLoss3D_OBB(nn.Module):
         self.l1_loss = nn.L1Loss(reduction='none')
         self.smooth_l1_loss = nn.SmoothL1Loss(reduction='none')
         self.mse_loss = nn.MSELoss(reduction='none')
-        self.iou3d = IoU3D(device=self.device)
         
     def focal_loss(self, pred_logits: torch.Tensor, target_classes: torch.Tensor) -> torch.Tensor:
         """
@@ -79,7 +75,7 @@ class MultiLoss3D_OBB(nn.Module):
         center_l1 = self.l1_loss(pred_center, target_center)
         
         # Optional: Weight depth (z) more heavily
-        depth_weight = torch.tensor([1.0, 1.0, 1.2], device=pred_center.device)
+        depth_weight = torch.tensor([1.0, 1.0, 1.5], device=pred_center.device)
         weighted_loss = center_l1 * depth_weight.unsqueeze(0)
         
         return weighted_loss.mean()
@@ -134,42 +130,27 @@ class MultiLoss3D_OBB(nn.Module):
         angular_distance = 2 * torch.acos(dot_product)
         
         return angular_distance.mean()
-    
-    def compute_iou3d(self, pred_bbox: torch.Tensor, target_bbox: torch.Tensor) -> torch.Tensor:
+
+    def mask_loss(self, pred_masks: torch.Tensor, target_masks: torch.Tensor) -> torch.Tensor:
         """
-        Compute 3D IoU between predicted and target bboxes.
-        Uses corner-based approximation for efficiency.
+        Mask loss for segmentation masks. Aggeregates GT into foreground/background mask. 
         
         Args:
-            pred_bbox: (N, 10) predicted bboxes
-            target_bbox: (N, 10) target bboxes
-            
-        Returns:
-            (N,) IoU values
-        """
-        # Convert to corners
-        pred_corners = obb_to_corners(pred_bbox)        # (N, 8, 3)
-        target_corners =obb_to_corners(target_bbox)     # (N, 8, 3)
+            pred_masks: (B, 1, H, W) predicted masks
+            target_masks: (B, num_objects, H, W) target masks   """
         
-        iou3d = self.iou3d.compute_iou_3d(pred_corners, target_corners)
-       
-        return iou3d
-    
-    def iou3d_loss(self, pred_bbox: torch.Tensor, target_bbox: torch.Tensor) -> torch.Tensor:
-        """
-        3D IoU loss for oriented bounding boxes.
+        # Convert target masks to binary foreground/background
+        target_mask = torch.any(target_masks, dim=0).float()  # (H, W)
+        pred_mask = pred_masks.squeeze(0)                     # (H, W)
+
+        assert target_mask.shape == pred_mask.shape, \
+            f"Shape mismatch: target {target_mask.shape}, pred {pred_mask.shape}"
         
-        Args:
-            pred_bbox: (N, 10) predicted bboxes
-            target_bbox: (N, 10) target bboxes
-            
-        Returns:
-            IoU loss value
-        """
-        iou = self.compute_iou3d(pred_bbox, target_bbox)
-        return (1 - iou).mean()
-    
-    
+        # Compute binary cross-entropy loss
+        bce_loss = F.binary_cross_entropy(pred_mask, target_mask, reduction='mean')
+
+        return bce_loss
+
     def forward(self, outputs: Dict[str, torch.Tensor], targets: List[Dict[str, torch.Tensor]]) -> Dict[str, torch.Tensor]:
         """
         Forward pass for multi-loss computation.
@@ -178,9 +159,11 @@ class MultiLoss3D_OBB(nn.Module):
             outputs: Dict with keys:
                 - 'pred_bbox3d': (B, N, 10) predicted 3D bboxes [cx,cy,cz,sx,sy,sz,qw,qx,qy,qz]
                 - 'pred_logits': (B, N, num_classes) prediction logits
+                - 'pred_masks': (B, 1, H, W) predicted segmentation masks (optional) - foreground/background
             targets: List of dicts for each batch item:
                 - 'bbox3d': (M, 10) target 3D bboxes
                 - 'labels': (M,) target class labels 
+                - 'mask': List of segmentation masks (optional), each of shape [num_obj, H, W]
                 
         Returns:
             Dictionary of loss values
@@ -196,8 +179,10 @@ class MultiLoss3D_OBB(nn.Module):
         loss_size = 0.0
         loss_quaternion = 0.0
         loss_focal = 0.0
-        loss_iou_3d = 0.0
-        loss_depth = 0.0
+
+        if "pred_mask" in outputs and "mask" in targets:
+            loss_mask = 0.0
+
         
         num_matched = 0
         
@@ -209,29 +194,28 @@ class MultiLoss3D_OBB(nn.Module):
             pred_boxes = outputs['pred_bbox3d'][batch_idx][pred_idx]  # (num_matched, 10)
             tgt_boxes = targets['bbox3d'][batch_idx][tgt_idx]          # (num_matched, 10)
             
-            # 1. Center position loss
+            # Center position loss
             pred_center = pred_boxes[:, :3]  # (num_matched, 3)
             tgt_center = tgt_boxes[:, :3]    # (num_matched, 3)
             loss_center += self.center_loss(pred_center, tgt_center) * len(pred_idx)
             
-            # 2. Size loss
+            # Size loss
             pred_size = pred_boxes[:, 3:6]  # (num_matched, 3)
             tgt_size = tgt_boxes[:, 3:6]    # (num_matched, 3)
             loss_size += self.size_loss(pred_size, tgt_size) * len(pred_idx)
             
-            # 3. Quaternion loss
+            # Quaternion loss
             pred_quat = pred_boxes[:, 6:]  # (num_matched, 4)
             tgt_quat = tgt_boxes[:, 6:]    # (num_matched, 4)
             loss_quaternion += self.quaternion_loss(pred_quat, tgt_quat) * len(pred_idx)
             
-            # 4. 3D IoU loss
-            loss_iou_3d += self.iou3d_loss(pred_boxes, tgt_boxes) * len(pred_idx)
-            
-            # 5. Depth consistency loss (additional focus on depth accuracy)
-            depth_diff = torch.abs(pred_center[:, 2] - tgt_center[:, 2])
-            loss_depth += depth_diff.mean() * len(pred_idx)
-            
-            # 6. Focal loss for classification
+            # Optional mask loss
+            if "pred_mask" in outputs and "mask" in targets:
+                pred_masks = outputs['pred_mask'][batch_idx]   # [num_classes, H, W]
+                tgt_masks = targets['mask'][batch_idx]          # [num_objects, H, W]
+                loss_mask = self.mask_loss(pred_masks, tgt_masks)
+
+            # Focal loss for classification
             pred_logits = outputs['pred_logits'][batch_idx]  # (num_preds, num_classes)
             target_classes = torch.zeros(pred_logits.size(0), dtype=torch.long, device=pred_logits.device)
             
@@ -253,8 +237,9 @@ class MultiLoss3D_OBB(nn.Module):
         losses['loss_size'] = loss_size / num_matched
         losses['loss_quaternion'] = loss_quaternion / num_matched
         losses['loss_focal'] = loss_focal / batch_size
-        losses['loss_iou_3d'] = loss_iou_3d / num_matched
-        losses['loss_depth'] = loss_depth / num_matched
+
+        if "pred_mask" in outputs and "mask" in targets:
+            losses['loss_mask'] = loss_mask 
         
         # Compute total weighted loss
         total_loss = sum(self.weight_dict[k] * v for k, v in losses.items() if k in self.weight_dict)
