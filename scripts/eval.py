@@ -1,3 +1,4 @@
+"""Script to evaluate a trained model using a specified configuration and checkpoint."""
 import argparse
 import os
 from torch.utils.data import DataLoader
@@ -8,8 +9,8 @@ from vision3d.utils.build import build_model, build_dataset, build_utils
 from vision3d.datasets.detection3d_dataset import collate_fn
 from pprint import pprint
 import datetime
-
 from vision3d.utils.logging import configure_logger
+
 logger = configure_logger(__name__.split(".")[-1])
 
 def parse_args():
@@ -78,17 +79,19 @@ def main():
     if evaluator is None:
         raise ValueError("No evaluator found in config. Evaluation requires an evaluator.")
     
-    # Create trainer (used for evaluation functionality)
+    # Create trainer 
     trainer = Trainer(
         model=model,
         device=cfg.device,
         evaluator=evaluator,
     )
     
+    # Evaluate on the dataset
     eval_results = trainer.evaluate_on_dataloader(eval_dataloader)
+
+    # Save and display results
     save_results(eval_results, save_dir, epoch, args.split)
 
-    # Print summary
     logger.info("="*50)
     logger.info("EVALUATION SUMMARY")
     logger.info("="*50)
@@ -98,13 +101,8 @@ def main():
     logger.info("Metrics:")
     logger.info(pprint(convert_to_serializable(eval_results)))
     logger.info("="*50)
-    
     logger.info("Evaluation completed successfully!")
 
 if __name__ == "__main__":
     main()
 
-"""
-Usage example:
-python scripts/eval.py --config ./configs/mono_detr3d.py --checkpoint /home/hao1rng/sec_proj/vision3d/logs/mono_detr3d/mono_detr3d_2025_07_14__15_16_07/epoch_59.pth --eval_dir ./eval_results/
-"""

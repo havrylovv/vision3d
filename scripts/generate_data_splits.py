@@ -1,5 +1,6 @@
 """Script to generate train/val/test splits for a 3D vision dataset.
 Specifically adapted for a dataset with RGB images, point clouds, segmentation masks, and 3D bounding boxes.
+
 Creates the following structure:
 - dataset_root/
     - train/    
@@ -15,12 +16,9 @@ Each split folder contains subfolders for each sample, with the following files:
     - pc.npy: Point cloud data
     - mask.npy: Segmentation mask
     - bbox3d.npy: 3D bounding boxes
-Also generates metadata files for easy loading.
-
-Additionally, it verifies dataset integrity before processing.
+Also generates metadata files for easy loading. Verifies dataset integrity before processing.
 """
 
-import os
 import json
 import shutil
 import random
@@ -38,7 +36,7 @@ def discover_samples(dataset_root: str) -> List[str]:
         dataset_root: Path to the dataset root directory
         
     Returns:
-        List of sample folder names (UUIDs)
+        List of sample folder names 
     """
     dataset_path = Path(dataset_root)
     samples = []
@@ -228,40 +226,40 @@ def main():
     
     print("Starting dataset preprocessing...")
     
-    # Step 1: Verify dataset integrity
-    print("\n1. Verifying dataset integrity...")
+    # Verify dataset integrity
+    print("Verifying dataset integrity...")
     stats = verify_dataset_integrity(DATASET_ROOT)
     print(f"Total folders: {stats['total_folders']}")
     print(f"Valid samples: {stats['valid_samples']}")
     print(f"Invalid samples: {stats['missing_files']}")
     
-    # Step 2: Discover all samples
-    print("\n2. Discovering samples...")
+    # Discover all samples
+    print("Discovering samples...")
     samples = discover_samples(DATASET_ROOT)
     
     if not samples:
         print("No valid samples found!")
         return
     
-    # Step 3: Create train/val/test splits
-    print("\n3. Creating train/val/test splits...")
+    # Create train/val/test splits
+    print("Creating train/val/test splits...")
     train_samples, val_samples, test_samples = create_train_val_split(
         samples, val_ratio=VAL_RATIO, test_ratio=TEST_RATIO, random_seed=RANDOM_SEED
     )
     
-    # Step 4: Create organized directory structure
-    print("\n4. Creating organized directory structure...")
+    # Create organized directory structure
+    print("Creating organized directory structure...")
     create_split_structure(
         DATASET_ROOT, train_samples, val_samples, test_samples, OUTPUT_DIR
     )
     
-    # Step 5: Create metadata files
-    print("\n5. Creating metadata files...")
+    # Create metadata files
+    print("Creating metadata files...")
     create_metadata_files(
         train_samples, val_samples, test_samples, OUTPUT_DIR
     )
     
-    print(f"\nDataset preprocessing complete!")
+    print(f"Dataset preprocessing complete!")
     print(f"Processed dataset saved to: {OUTPUT_DIR}/")
     print(f"- train/: {len(train_samples)} samples")
     print(f"- val/: {len(val_samples)} samples") 

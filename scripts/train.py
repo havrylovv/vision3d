@@ -1,6 +1,7 @@
+"""Script to train a 3D vision model using a configuration file."""
+
 import argparse
 import os
-import torch
 from torch.utils.data import DataLoader
 from vision3d.utils.config import load_config
 from vision3d.engine.trainer import Trainer
@@ -10,8 +11,8 @@ from vision3d.datasets.detection3d_dataset import collate_fn
 from pprint import pprint
 from vision3d.utils.wandb import WandbLogger
 import datetime
-
 from vision3d.utils.logging import configure_logger
+
 logger = configure_logger(__name__.split(".")[-1])
 
 def parse_args():
@@ -27,9 +28,6 @@ def check_core_components(cfg):
         if key not in cfg:
             raise ValueError(f"Missing required configuration key: {key}")
 
-    if "scheduler" in cfg and not isinstance(cfg["scheduler"], dict):
-        raise ValueError("Scheduler configuration must be a dictionary")
-
     if "hooks" in cfg and not isinstance(cfg["hooks"], list):
         raise ValueError("Hooks configuration must be a list of dictionaries")
 
@@ -40,7 +38,7 @@ def main():
 
     check_core_components(cfg)
 
-    # run name is a name of config + timestamp
+    # Run name is a name of config + timestamp
     RUN_NAME = args.config.split("/")[-1].split(".")[0] + "_" + timestamp
     save_dir = args.save_dir + f"/{RUN_NAME}"
     os.makedirs(save_dir, exist_ok=True)
@@ -62,7 +60,6 @@ def main():
     # Build components
     train_dataset = build_dataset(cfg.train_dataset)
     val_dataset = build_dataset(cfg.val_dataset) if "val_dataset" in cfg else None
-
 
     train_loader = DataLoader(
         train_dataset,
@@ -104,7 +101,6 @@ def main():
 
     evaluator = build_utils(cfg.evaluator) if "evaluator" in cfg else None
     
-
     trainer = Trainer(
         model=model,
         train_loader=train_loader,
@@ -130,12 +126,5 @@ def main():
             logger.info("WandB logging finished")
 
 
-
 if __name__ == "__main__":
     main()
-
-"""usage example:
-python vision3d/scripts/train.py --config ./vision3d/configs/dummy.py --save_dir ./logs/dummy
-python scripts/train.py --config /home/hao1rng/sec_proj/vision3d/configs/dummy_detr3d.py.py --save_dir ./logs/dummy
-python scripts/train.py --config /home/hao1rng/sec_proj/vision3d/configs/mono_detr3d.py --save_dir ./logs/mono_detr3d
-"""

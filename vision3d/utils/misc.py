@@ -95,3 +95,44 @@ def save_results(results, output_path, epoch_num, split):
         json.dump(result_data, f, indent=2)
     
     logger.info(f"Results saved to: {output_path}")
+
+
+def convert_to_onnx(model, checkpoint_path, device, output_path, input_shape):
+    """
+    Convert a PyTorch model checkpoint to ONNX format and save it.
+
+    Args:
+        model: The PyTorch model instance.
+        checkpoint_path: Path to the PyTorch checkpoint.
+        device: Device to load the model on ('cpu' or 'cuda').
+        output_path: Path to save the ONNX model.
+        input_shape: Shape of the input tensor (e.g., (1, 3, 224, 224)).
+    """
+    # Load the checkpoint
+    model, _ = load_checkpoint(model, checkpoint_path, device)
+    model.eval()  
+
+    # Create a dummy input tensor with the specified shape
+    if isinstance(input_shape, list):
+        dummy_input = [torch.randn(shape).to(device) for shape in input_shape]
+    else:
+        dummy_input = torch.randn(input_shape).to(device)   
+
+    # Convert the model to ONNX format
+    onnx_path = Path(output_path)
+
+    torch.onnx.export(
+        model,
+        tuple(dummy_input),
+        onnx_path,
+        export_params=True,         
+        opset_version=13,           
+        do_constant_folding=True,   
+        input_names=["rgb", "pc"],      
+        output_names=["outputs"],    
+        dynamic_axes={"rgb": {0: "batch_size"}, 
+                      "pc": {0: "batch_size"},  
+                      "outputs": {0: "batch_size"},
+                    }
+    )
+    logger.info(f"ONNX model saved to: {onnx_path}")
