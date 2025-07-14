@@ -78,6 +78,10 @@ python convert_onnx.py \
     --output_path /path/to/output/model.onnx \
     --device cuda
 ```
+- Once exported, [Netron](https://netron.app/) can be used to visualize the model. Visualization of MonoDETR3D can found [here](./assets/mono_detr3d_onnx.svg). 
+
+#### Data Exploration
+- `data_exploration.ipynb` provides interactive visualization of dataset samples.
 
 ## License 
 This project is licensed under the MIT License. See the LICENSE file for details.
