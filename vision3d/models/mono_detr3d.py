@@ -58,7 +58,6 @@ class MonoDETR3D(Vision3DModel):
             point_cloud, image_features, pc_features
         )
 
-        #import pdb; pdb.set_trace()  # Debugging breakpoint
         # Fuse features and get queries     
         fused_features = self.fusion_transformer(image_inputs, pc_inputs)
 

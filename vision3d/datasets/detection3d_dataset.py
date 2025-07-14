@@ -13,7 +13,6 @@ from vision3d.utils.logging import configure_logger
 from vision3d.utils.registry import DATASETS
 from vision3d.utils.bbox_converter import reorder_corners_pca, corners_to_obb
 
-
 logger = configure_logger(__name__.split(".")[-1], logging.INFO)
 
 @DATASETS.register()

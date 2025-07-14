@@ -79,7 +79,7 @@ def load_checkpoint(model, checkpoint_path, device):
     else: 
         raise ValueError("Checkpoint format not recognized. Expected 'model' and 'epoch' keys in checkpoint.")
     
-    return model, epoch
+    return model.to(device), epoch
 
 def save_results(results, output_path, epoch_num, split):
     """Save evaluation results to JSON file."""

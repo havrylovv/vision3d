@@ -138,8 +138,8 @@ class MultiLoss3D_OBB(nn.Module):
         Mask loss for segmentation masks. Aggeregates GT into foreground/background mask. 
         
         Args:
-            pred_masks: (B, 1, H, W) predicted masks
-            target_masks: (B, num_objects, H, W) target masks   """
+            pred_masks: (1, H, W) predicted masks
+            target_masks: (num_objects, H, W) target masks   """
         
         # Convert target masks to binary foreground/background
         target_mask = torch.any(target_masks, dim=0).float()  # (H, W)
@@ -210,12 +210,6 @@ class MultiLoss3D_OBB(nn.Module):
             pred_quat = pred_boxes[:, 6:]  # (num_matched, 4)
             tgt_quat = tgt_boxes[:, 6:]    # (num_matched, 4)
             loss_quaternion += self.quaternion_loss(pred_quat, tgt_quat) * len(pred_idx)
-            
-            # Optional mask loss
-            if "pred_mask" in outputs and "mask" in targets and self.use_mask:
-                pred_masks = outputs['pred_mask'][batch_idx]   # [num_classes, H, W]
-                tgt_masks = targets['mask'][batch_idx]          # [num_objects, H, W]
-                loss_mask = self.mask_loss(pred_masks, tgt_masks)
 
             # Focal loss for classification
             pred_logits = outputs['pred_logits'][batch_idx]  # (num_preds, num_classes)
@@ -231,7 +225,7 @@ class MultiLoss3D_OBB(nn.Module):
             num_matched += len(pred_idx)
         
         # Normalize losses
-        batch_size = len(targets)
+        batch_size = len(targets['mask'])
         num_matched = max(num_matched, 1)  # Avoid division by zero
         
         # Store individual losses
@@ -240,9 +234,14 @@ class MultiLoss3D_OBB(nn.Module):
         losses['loss_quaternion'] = loss_quaternion / num_matched
         losses['loss_focal'] = loss_focal / batch_size
 
+        # Optional mask loss
         if "pred_mask" in outputs and "mask" in targets and self.use_mask:
-            losses['loss_mask'] = loss_mask 
-        
+            for batch_idx in range(len(targets['mask'])):
+                pred_masks = outputs['pred_mask'][batch_idx]    # [1, H, W]
+                tgt_masks = targets['mask'][batch_idx]          # [num_objects, H, W]
+                loss_mask += self.mask_loss(pred_masks, tgt_masks)
+            losses['loss_mask'] = loss_mask / batch_size 
+            
         # Compute total weighted loss
         total_loss = sum(self.weight_dict[k] * v for k, v in losses.items() if k in self.weight_dict)
         losses['total_loss'] = total_loss
