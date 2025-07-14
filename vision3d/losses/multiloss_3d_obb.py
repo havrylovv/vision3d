@@ -26,9 +26,7 @@ class MultiLoss3D_OBB(nn.Module):
         - Mask Loss for segmentation (optional)
     """
 
-    def __init__(
-        self, matcher_cfg: dict, weight_dict: Optional[dict] = None, use_mask: bool = False
-    ):
+    def __init__(self, matcher_cfg: dict, weight_dict: Optional[dict] = None, use_mask: bool = False):
 
         super().__init__()
         self.use_mask = use_mask
@@ -222,9 +220,7 @@ class MultiLoss3D_OBB(nn.Module):
 
             # Focal loss for classification
             pred_logits = outputs["pred_logits"][batch_idx]  # (num_preds, num_classes)
-            target_classes = torch.zeros(
-                pred_logits.size(0), dtype=torch.long, device=pred_logits.device
-            )
+            target_classes = torch.zeros(pred_logits.size(0), dtype=torch.long, device=pred_logits.device)
 
             # Set positive class for matched predictions
             if len(tgt_idx) > 0:
@@ -254,9 +250,7 @@ class MultiLoss3D_OBB(nn.Module):
             losses["loss_mask"] = loss_mask / batch_size
 
         # Compute total weighted loss
-        total_loss = sum(
-            self.weight_dict[k] * v for k, v in losses.items() if k in self.weight_dict
-        )
+        total_loss = sum(self.weight_dict[k] * v for k, v in losses.items() if k in self.weight_dict)
         losses["total_loss"] = total_loss
 
         return losses

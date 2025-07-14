@@ -94,9 +94,7 @@ class SimpleBbox3DHead(nn.Module):
             Output tensor of shape (B, num_q, 10), where 10 = [center (3), size (3), quaternion (4)].
         """
         if queries.dim() != 3:
-            raise ValueError(
-                f"Expected input of shape (B, num_q, d_model), but got {queries.shape}"
-            )
+            raise ValueError(f"Expected input of shape (B, num_q, d_model), but got {queries.shape}")
 
         # Predict center
         center = self.center_head(queries)

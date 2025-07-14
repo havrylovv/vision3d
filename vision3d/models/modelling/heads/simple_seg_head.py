@@ -51,9 +51,7 @@ class SimpleSegHead(nn.Module):
 
         # Bilinearly interpolate to target size
         if self.target_hw is not None:
-            pred_prob = F.interpolate(
-                pred_prob, size=self.target_hw, mode="bilinear", align_corners=False
-            )
+            pred_prob = F.interpolate(pred_prob, size=self.target_hw, mode="bilinear", align_corners=False)
 
         output = dict(pred_mask=pred_prob)
         return output

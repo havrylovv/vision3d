@@ -19,9 +19,7 @@ class Evaluator:
     Can be used standalone or integrated into the trainer for validation.
     """
 
-    def __init__(
-        self, matcher: dict, metric_cfgs: List[dict], device: Union[str, torch.device] = "cpu"
-    ):
+    def __init__(self, matcher: dict, metric_cfgs: List[dict], device: Union[str, torch.device] = "cpu"):
         """
         Initialize the evaluator.
 

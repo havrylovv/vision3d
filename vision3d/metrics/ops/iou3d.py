@@ -46,9 +46,7 @@ class IoU3D:
         volume = torch.abs(torch.sum(edge1 * cross_product, dim=1))  # [B]
         return volume
 
-    def get_axis_aligned_bbox_from_corners_batch(
-        self, corners: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    def get_axis_aligned_bbox_from_corners_batch(self, corners: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Get axis-aligned bounding box from corners (vectorized).
 
@@ -177,9 +175,7 @@ class IoU3D:
         is_aligned = torch.all(torch.all(differences < tolerance, dim=2), dim=1)  # [B]
         return is_aligned
 
-    def point_in_oriented_bbox_batch(
-        self, points: torch.Tensor, corners: torch.Tensor
-    ) -> torch.Tensor:
+    def point_in_oriented_bbox_batch(self, points: torch.Tensor, corners: torch.Tensor) -> torch.Tensor:
         """
         Check if points are inside oriented 3D bounding boxes (vectorized).
 
@@ -220,9 +216,7 @@ class IoU3D:
         proj3 = torch.abs(torch.sum(to_points * edge3_norm.unsqueeze(1), dim=2))  # [B, N]
 
         # Check if projections are within bounds
-        inside = (
-            (proj1 <= half_length1) & (proj2 <= half_length2) & (proj3 <= half_length3)
-        )  # [B, N]
+        inside = (proj1 <= half_length1) & (proj2 <= half_length2) & (proj3 <= half_length3)  # [B, N]
 
         return inside
 
@@ -283,8 +277,6 @@ class IoU3D:
         union_vol = vol1 + vol2 - intersection_vol
 
         # Avoid division by zero
-        iou = torch.where(
-            union_vol > 1e-10, intersection_vol / union_vol, torch.zeros_like(union_vol)
-        )
+        iou = torch.where(union_vol > 1e-10, intersection_vol / union_vol, torch.zeros_like(union_vol))
 
         return iou

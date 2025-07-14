@@ -69,9 +69,7 @@ class MonoDETR3D(Vision3DModel):
         pc_features = self.pc_encoder(point_cloud)
 
         # Prepare Multi-scale features (features, masks, positional embeddings)
-        image_inputs, pc_inputs = self.prepare_inputs_to_fusion_transformer(
-            point_cloud, image_features, pc_features
-        )
+        image_inputs, pc_inputs = self.prepare_inputs_to_fusion_transformer(point_cloud, image_features, pc_features)
 
         # Fuse features and get queries
         fused_features = self.fusion_transformer(image_inputs, pc_inputs)
@@ -94,12 +92,8 @@ class MonoDETR3D(Vision3DModel):
         """
         B = point_cloud.shape[0]
 
-        assert isinstance(
-            image_features, dict
-        ), "Image features should be a dictionary of multi-scale features."
-        assert isinstance(
-            pc_features, dict
-        ), "Point cloud features should be a dictionary of multi-scale features."
+        assert isinstance(image_features, dict), "Image features should be a dictionary of multi-scale features."
+        assert isinstance(pc_features, dict), "Point cloud features should be a dictionary of multi-scale features."
 
         image_features = [single_scale for single_scale in image_features.values()]
         pc_features = [single_scale for single_scale in pc_features.values()]
@@ -109,9 +103,7 @@ class MonoDETR3D(Vision3DModel):
         # Generate masks not to attend to missing points in point cloud (0 - keep, 1 - remove)
         missing_mask = ~torch.all(point_cloud == 0, dim=1, keepdim=True)  # (B, 1, H, W)
         pc_masks = [
-            nn.functional.interpolate(
-                missing_mask.float(), size=shape, mode="bilinear", align_corners=False
-            )
+            nn.functional.interpolate(missing_mask.float(), size=shape, mode="bilinear", align_corners=False)
             .bool()
             .squeeze(1)
             for shape in features_shapes
@@ -123,12 +115,8 @@ class MonoDETR3D(Vision3DModel):
         ]
 
         # Generate positional embeddings for both modalities
-        image_pos_embeds = self.generate_position_embeddings(
-            image_features, image_masks, self.image_position_embedding
-        )
-        pc_pos_embeds = self.generate_position_embeddings(
-            pc_features, pc_masks, self.pc_position_embedding
-        )
+        image_pos_embeds = self.generate_position_embeddings(image_features, image_masks, self.image_position_embedding)
+        pc_pos_embeds = self.generate_position_embeddings(pc_features, pc_masks, self.pc_position_embedding)
 
         # Prepare inputs for fusion transformer
         image_inputs = {

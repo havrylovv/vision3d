@@ -21,9 +21,9 @@ train_transforms = dict(
     pc=transforms.Compose(
         [
             transforms.Lambda(
-                lambda x: F.interpolate(
-                    x.unsqueeze(0), size=(target_hw), mode="bilinear", align_corners=False
-                ).squeeze(0)
+                lambda x: F.interpolate(x.unsqueeze(0), size=(target_hw), mode="bilinear", align_corners=False).squeeze(
+                    0
+                )
             ),
         ]
     ),

@@ -49,9 +49,7 @@ class IoU3DMetric(Metric):
         pred_bboxes = preds["pred_bbox3d"]  # List of (N, 10)
         gt_bboxes = targets["bbox3d"]  # List of (N, 10)
 
-        assert len(pred_bboxes) == len(
-            gt_bboxes
-        ), "Predictions and targets must have the same number of samples."
+        assert len(pred_bboxes) == len(gt_bboxes), "Predictions and targets must have the same number of samples."
 
         for pred_bbox, gt_bbox in zip(pred_bboxes, gt_bboxes):
             self._update_single_sample(pred_bbox, gt_bbox)

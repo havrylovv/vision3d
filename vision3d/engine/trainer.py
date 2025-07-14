@@ -70,9 +70,7 @@ class Trainer:
                 # Log learning rate to wandb
                 if self.wandb_logger and self.wandb_logger.is_enabled():
                     current_lr = self.scheduler.get_last_lr()[0]
-                    self.wandb_logger.log_metrics(
-                        {"learning_rate": current_lr}, step=epoch, commit=False
-                    )
+                    self.wandb_logger.log_metrics({"learning_rate": current_lr}, step=epoch, commit=False)
 
             self.current_epoch = epoch
 
@@ -131,9 +129,7 @@ class Trainer:
 
         # Log validation metrics to wandb
         if self.wandb_logger and self.wandb_logger.is_enabled():
-            self.wandb_logger.log_metrics(
-                metrics=self.last_val_metrics, step=epoch, prefix="val_metrics", commit=False
-            )
+            self.wandb_logger.log_metrics(metrics=self.last_val_metrics, step=epoch, prefix="val_metrics", commit=False)
 
     def _call_hooks(self, method_name: str, index: int) -> None:
         for hook in self.hooks:

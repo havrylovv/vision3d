@@ -145,9 +145,7 @@ class Detection3DDataset(Dataset):
         targets = {
             "mask": mask,
             "bbox3d": bbox3d.to(dtype=torch.float32),
-            "labels": torch.ones(
-                bbox3d.shape[0], dtype=torch.long
-            ),  # class 0 - background, class 1 - object
+            "labels": torch.ones(bbox3d.shape[0], dtype=torch.long),  # class 0 - background, class 1 - object
         }
 
         if self.return_sample_id:
@@ -189,9 +187,7 @@ class Detection3DDataset(Dataset):
         return info
 
 
-def collate_fn(
-    batch: List[Tuple[Dict[str, Any], Dict[str, Any]]]
-) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+def collate_fn(batch: List[Tuple[Dict[str, Any], Dict[str, Any]]]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     """
     Collate function for batching samples with possibly variable-sized tensors
     like masks or 3D bounding boxes.
@@ -218,9 +214,7 @@ def collate_fn(
     # Collate targets
     batched_targets = {
         "mask": [target["mask"] for target in targets_list],  # list of [num_obj, H, W]
-        "bbox3d": [
-            target["bbox3d"] for target in targets_list
-        ],  # list of [num_obj, 8, 3] or [num_obj, 10] (OOB)
+        "bbox3d": [target["bbox3d"] for target in targets_list],  # list of [num_obj, 8, 3] or [num_obj, 10] (OOB)
         "labels": [target["labels"] for target in targets_list],  # list of [num_obj]
     }
 

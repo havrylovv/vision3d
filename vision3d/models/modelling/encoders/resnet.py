@@ -50,8 +50,7 @@ class ResNetEncoder(RGBEncoderBase):
 
         if model_name not in self.SUPPORTED_MODELS:
             raise ValueError(
-                f"Unsupported ResNet model: {model_name}. "
-                f"Supported models: {list(self.SUPPORTED_MODELS.keys())}"
+                f"Unsupported ResNet model: {model_name}. " f"Supported models: {list(self.SUPPORTED_MODELS.keys())}"
             )
 
         self.model_name = model_name
@@ -67,9 +66,7 @@ class ResNetEncoder(RGBEncoderBase):
         self.backbone = nn.Sequential(*list(self.backbone.children())[:-2])
 
         # Extract individual layers for multiscale features
-        self.layer1 = nn.Sequential(
-            *list(self.backbone.children())[:5]
-        )  # Conv1, BN, ReLU, MaxPool, Layer1
+        self.layer1 = nn.Sequential(*list(self.backbone.children())[:5])  # Conv1, BN, ReLU, MaxPool, Layer1
         self.layer2 = self.backbone[5]  # Layer2
         self.layer3 = self.backbone[6]  # Layer3
         self.layer4 = self.backbone[7]  # Layer4

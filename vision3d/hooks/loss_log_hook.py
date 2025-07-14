@@ -68,9 +68,7 @@ class LossLoggingHook(Hook):
         self._append_loss(self.val_loss_buffer, loss)
 
         if self.aggregate_val_loss and (step + 1) % self.log_interval == 0:
-            self._log_loss(
-                trainer.current_epoch, step + 1, self.val_total_steps, "VAL", self.val_loss_buffer
-            )
+            self._log_loss(trainer.current_epoch, step + 1, self.val_total_steps, "VAL", self.val_loss_buffer)
             self.val_loss_buffer.clear()
 
     def after_val_epoch(self, epoch: int, trainer):
@@ -114,9 +112,7 @@ class LossLoggingHook(Hook):
         else:
             buffer.append(loss.item() if hasattr(loss, "item") else loss)
 
-    def _log_loss(
-        self, epoch: int, step: Union[int, None], total: Union[int, None], phase: str, buffer
-    ):
+    def _log_loss(self, epoch: int, step: Union[int, None], total: Union[int, None], phase: str, buffer):
         if not buffer:
             return None
 

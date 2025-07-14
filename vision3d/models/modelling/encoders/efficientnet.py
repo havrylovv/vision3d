@@ -107,9 +107,7 @@ class EfficientNetEncoder(RGBEncoderBase):
 
             # Apply projections if specified
             if self.output_dim is not None:
-                feature_dict = {
-                    key: self.projections[key](feat) for key, feat in feature_dict.items()
-                }
+                feature_dict = {key: self.projections[key](feat) for key, feat in feature_dict.items()}
 
             return feature_dict
         else:

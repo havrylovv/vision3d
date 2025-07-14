@@ -82,9 +82,7 @@ def load_checkpoint(model, checkpoint_path, device):
         epoch = checkpoint.get("epoch", "<unknown>")
         logger.info(f"Loaded checkpoint from epoch {epoch}")
     else:
-        raise ValueError(
-            "Checkpoint format not recognized. Expected 'model' and 'epoch' keys in checkpoint."
-        )
+        raise ValueError("Checkpoint format not recognized. Expected 'model' and 'epoch' keys in checkpoint.")
 
     return model.to(device), epoch
 

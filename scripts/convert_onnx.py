@@ -22,15 +22,9 @@ def parse_args():
         required=True,
         help="Path to the config file that has information about the model.",
     )
-    parser.add_argument(
-        "--checkpoint", type=str, required=True, help="Path to the PyTorch checkpoint."
-    )
-    parser.add_argument(
-        "--output_path", type=str, required=True, help="Path to save the ONNX model."
-    )
-    parser.add_argument(
-        "--device", type=str, default="cpu", help="Device to load the model on ('cpu' or 'cuda')."
-    )
+    parser.add_argument("--checkpoint", type=str, required=True, help="Path to the PyTorch checkpoint.")
+    parser.add_argument("--output_path", type=str, required=True, help="Path to save the ONNX model.")
+    parser.add_argument("--device", type=str, default="cpu", help="Device to load the model on ('cpu' or 'cuda').")
     return parser.parse_args()
 
 

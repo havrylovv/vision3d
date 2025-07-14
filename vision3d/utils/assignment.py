@@ -34,9 +34,7 @@ class HungarianMatcher3D_Corners:
             pred_logits = outputs["pred_logits"][batch_idx]  # (num_preds, 2)
 
             gt_boxes = targets[batch_idx]  # (num_gt, 8, 3)
-            gt_labels = torch.ones(
-                gt_boxes.size(0), dtype=torch.int64
-            )  # assume all GTs are objects
+            gt_labels = torch.ones(gt_boxes.size(0), dtype=torch.int64)  # assume all GTs are objects
 
             cost_bbox = self._bbox_cost(pred_boxes, gt_boxes)
             cost_cls = self._cls_cost(pred_logits, gt_labels)
@@ -161,11 +159,7 @@ class HungarianMatcher3D_OBB:
         cost_size = self._size_cost(pred_boxes, gt_boxes)
         cost_rot = self._rotation_cost(pred_boxes, gt_boxes)
 
-        return (
-            self.center_weight * cost_center
-            + self.size_weight * cost_size
-            + self.rot_weight * cost_rot
-        )
+        return self.center_weight * cost_center + self.size_weight * cost_size + self.rot_weight * cost_rot
 
     def _cls_cost(self, pred_logits: Tensor, gt_labels: Tensor):
         """Classification cost"""
@@ -200,9 +194,7 @@ class HungarianMatcher3D_OBB:
 
             # Skip if no ground truth boxes
             if gt_boxes.size(0) == 0:
-                indices.append(
-                    (torch.empty(0, dtype=torch.int64), torch.empty(0, dtype=torch.int64))
-                )
+                indices.append((torch.empty(0, dtype=torch.int64), torch.empty(0, dtype=torch.int64)))
                 continue
 
             # Assume all GTs are objects (or extract from targets if available)
@@ -232,9 +224,7 @@ def test_hungarian_matcher_3d_csq():
     """Test HungarianMatcher3D_CSQ with various scenarios"""
 
     # Initialize matcher
-    matcher = HungarianMatcher3D_OBB(
-        cls_weight=1.0, center_weight=2.0, size_weight=1.0, rot_weight=1.0
-    )
+    matcher = HungarianMatcher3D_OBB(cls_weight=1.0, center_weight=2.0, size_weight=1.0, rot_weight=1.0)
 
     print("Testing HungarianMatcher3D_CSQ...")
 
@@ -388,24 +378,16 @@ def test_hungarian_matcher_3d_csq():
     print("\n5. Testing individual cost components...")
 
     # Test center cost
-    pred_test = torch.tensor(
-        [[0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0]], dtype=torch.float32
-    )
-    gt_test = torch.tensor(
-        [[1.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0]], dtype=torch.float32
-    )
+    pred_test = torch.tensor([[0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0]], dtype=torch.float32)
+    gt_test = torch.tensor([[1.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0]], dtype=torch.float32)
 
     center_cost = matcher._center_cost(pred_test, gt_test)
     print(f"Center cost (should be 1.0): {center_cost[0,0]}")
     assert abs(center_cost[0, 0] - 1.0) < 1e-6, "Center cost calculation error"
 
     # Test size cost
-    pred_test_size = torch.tensor(
-        [[0.0, 0.0, 0.0, 2.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0]], dtype=torch.float32
-    )
-    gt_test_size = torch.tensor(
-        [[0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0]], dtype=torch.float32
-    )
+    pred_test_size = torch.tensor([[0.0, 0.0, 0.0, 2.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0]], dtype=torch.float32)
+    gt_test_size = torch.tensor([[0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0]], dtype=torch.float32)
 
     size_cost = matcher._size_cost(pred_test_size, gt_test_size)
     print(f"Size cost (should be 1.0): {size_cost[0,0]}")

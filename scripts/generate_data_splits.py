@@ -76,9 +76,7 @@ def create_train_val_split(
     np.random.seed(random_seed)
 
     # First split: separate test set
-    train_val_samples, test_samples = train_test_split(
-        samples, test_size=test_ratio, random_state=random_seed
-    )
+    train_val_samples, test_samples = train_test_split(samples, test_size=test_ratio, random_state=random_seed)
 
     # Second split: separate train and val
     adjusted_val_ratio = val_ratio / (1 - test_ratio)
@@ -204,20 +202,12 @@ def verify_dataset_integrity(dataset_root: str) -> Dict[str, int]:
 
 def main():
     # Configuration
-    parser = argparse.ArgumentParser(
-        description="Generate train/val/test splits for a 3D vision dataset."
-    )
-    parser.add_argument(
-        "--dataset_root", type=str, required=True, help="Path to the dataset root directory"
-    )
-    parser.add_argument(
-        "--output_dir", type=str, default="processed_dataset", help="Output directory name"
-    )
+    parser = argparse.ArgumentParser(description="Generate train/val/test splits for a 3D vision dataset.")
+    parser.add_argument("--dataset_root", type=str, required=True, help="Path to the dataset root directory")
+    parser.add_argument("--output_dir", type=str, default="processed_dataset", help="Output directory name")
     parser.add_argument("--val_ratio", type=float, default=0.2, help="Validation set ratio")
     parser.add_argument("--test_ratio", type=float, default=0.1, help="Test set ratio")
-    parser.add_argument(
-        "--random_seed", type=int, default=12345, help="Random seed for reproducibility"
-    )
+    parser.add_argument("--random_seed", type=int, default=12345, help="Random seed for reproducibility")
     args = parser.parse_args()
 
     DATASET_ROOT = args.dataset_root

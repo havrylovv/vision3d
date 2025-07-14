@@ -42,9 +42,7 @@ class WandbLogger:
             if save_dir:
                 os.environ["WANDB_DIR"] = save_dir
 
-            self.run = wandb.init(
-                project=project_name, name=run_name, config=config, tags=tags, **kwargs
-            )
+            self.run = wandb.init(project=project_name, name=run_name, config=config, tags=tags, **kwargs)
             logging.info(f"WandB logging initialized: {self.run.url}")
         except Exception as e:
             logging.warning(f"Failed to initialize WandB: {e}")

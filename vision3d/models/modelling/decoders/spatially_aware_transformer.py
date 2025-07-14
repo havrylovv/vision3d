@@ -61,18 +61,14 @@ def generate_sine_position_embedding(pos_tensor: Tensor) -> Tensor:
         for i in range(2, 4):
             embed = pos_tensor[..., i] * scale
             pos_embed = embed[..., None] / dim_t
-            pos_embed = torch.stack(
-                (pos_embed[..., 0::2].sin(), pos_embed[..., 1::2].cos()), dim=-1
-            ).flatten(-2)
+            pos_embed = torch.stack((pos_embed[..., 0::2].sin(), pos_embed[..., 1::2].cos()), dim=-1).flatten(-2)
             pos_components.append(pos_embed)
     elif pos_tensor.size(-1) == 6:
         # x, y, l, r, t, b coordinates
         for i in range(2, 6):
             embed = pos_tensor[..., i] * scale
             pos_embed = embed[..., None] / dim_t
-            pos_embed = torch.stack(
-                (pos_embed[..., 0::2].sin(), pos_embed[..., 1::2].cos()), dim=-1
-            ).flatten(-2)
+            pos_embed = torch.stack((pos_embed[..., 0::2].sin(), pos_embed[..., 1::2].cos()), dim=-1).flatten(-2)
             pos_components.append(pos_embed)
     else:
         raise ValueError(f"Unsupported position tensor dimension: {pos_tensor.size(-1)}")
@@ -94,9 +90,7 @@ def _get_activation_fn(activation: str) -> callable:
     }
 
     if activation not in activation_map:
-        raise RuntimeError(
-            f"Activation should be one of {list(activation_map.keys())}, got {activation}"
-        )
+        raise RuntimeError(f"Activation should be one of {list(activation_map.keys())}, got {activation}")
 
     return activation_map[activation]
 
@@ -179,9 +173,7 @@ class VisualEncoder(nn.Module):
         self.num_layers = num_layers
 
     @staticmethod
-    def get_reference_points(
-        spatial_shapes: Tensor, valid_ratios: Tensor, device: torch.device
-    ) -> Tensor:
+    def get_reference_points(spatial_shapes: Tensor, valid_ratios: Tensor, device: torch.device) -> Tensor:
         """Generate reference points for deformable attention."""
         reference_points_list = []
 
@@ -223,14 +215,10 @@ class VisualEncoder(nn.Module):
             output: Encoded feature map of shape (batch_size, channels, height, width)
         """
         output = src
-        reference_points = self.get_reference_points(
-            spatial_shapes, valid_ratios, device=src.device
-        )
+        reference_points = self.get_reference_points(spatial_shapes, valid_ratios, device=src.device)
 
         for layer in self.layers:
-            output = layer(
-                output, pos, reference_points, spatial_shapes, level_start_index, padding_mask
-            )
+            output = layer(output, pos, reference_points, spatial_shapes, level_start_index, padding_mask)
 
         return output
 
@@ -272,20 +260,12 @@ class CrossAttentionBlock(nn.Module):
         original_query_shape = query.shape
 
         # Ensure all tensors have the shape (seq_len, batch_size, d_model)
-        query = query.permute(
-            1, 0, 2
-        )  # (batch_size, seq_len, d_model) -> (seq_len, batch_size, d_model)
-        key = key.permute(
-            1, 0, 2
-        )  # (batch_size, seq_len, d_model) -> (seq_len, batch_size, d_model)
-        value = value.permute(
-            1, 0, 2
-        )  # (batch_size, seq_len, d_model) -> (seq_len, batch_size, d_model)
+        query = query.permute(1, 0, 2)  # (batch_size, seq_len, d_model) -> (seq_len, batch_size, d_model)
+        key = key.permute(1, 0, 2)  # (batch_size, seq_len, d_model) -> (seq_len, batch_size, d_model)
+        value = value.permute(1, 0, 2)  # (batch_size, seq_len, d_model) -> (seq_len, batch_size, d_model)
 
         # Perform cross-attention
-        attn_output, _ = self.cross_attn(
-            query, key, value, attn_mask=attn_mask, key_padding_mask=key_padding_mask
-        )
+        attn_output, _ = self.cross_attn(query, key, value, attn_mask=attn_mask, key_padding_mask=key_padding_mask)
         query = query + self.dropout(attn_output)
         query = self.norm1(query)
 
@@ -315,15 +295,11 @@ class DecoderLayer(nn.Module):
     ):
         super().__init__()
         self.self_attn = nn.MultiheadAttention(d_model, nhead, dropout=dropout)
-        self.cross_attn_block = CrossAttentionBlock(
-            d_model, nhead, dim_feedforward, dropout, activation
-        )
+        self.cross_attn_block = CrossAttentionBlock(d_model, nhead, dim_feedforward, dropout, activation)
         self.norm1 = nn.LayerNorm(d_model)
         self.dropout = nn.Dropout(dropout)
 
-    def forward(
-        self, queries: torch.Tensor, memory: torch.Tensor, attn_mask=None, key_padding_mask=None
-    ):
+    def forward(self, queries: torch.Tensor, memory: torch.Tensor, attn_mask=None, key_padding_mask=None):
         """
         Args:
             queries: (batch_size, num_queries, d_model)
@@ -332,9 +308,7 @@ class DecoderLayer(nn.Module):
         # Self-attention among queries
         q_permuted = queries.permute(1, 0, 2)  # (num_queries, batch_size, d_model)
         self_attn_out, _ = self.self_attn(q_permuted, q_permuted, q_permuted, attn_mask=attn_mask)
-        queries = queries + self.dropout(
-            self_attn_out.permute(1, 0, 2)
-        )  # Back to (batch_size, num_queries, d_model)
+        queries = queries + self.dropout(self_attn_out.permute(1, 0, 2))  # Back to (batch_size, num_queries, d_model)
         queries = self.norm1(queries)
 
         # Cross-attention with memory
@@ -427,10 +401,7 @@ class SpatiallyAwareTransformer(nn.Module):
 
         # Decoder layers for progressive refinement
         self.decoder_layers = nn.ModuleList(
-            [
-                DecoderLayer(d_model, nhead, dim_feedforward, dropout, activation)
-                for _ in range(decoder_layers)
-            ]
+            [DecoderLayer(d_model, nhead, dim_feedforward, dropout, activation) for _ in range(decoder_layers)]
         )
 
         # Cross-attention between fused modality and learnable queries
@@ -518,9 +489,7 @@ class SpatiallyAwareTransformer(nn.Module):
         spatial_shapes = torch.as_tensor(spatial_shapes, dtype=torch.long, device=srcs[0].device)
 
         # Compute level start index
-        level_start_index = torch.cat(
-            (spatial_shapes.new_zeros((1,)), spatial_shapes.prod(1).cumsum(0)[:-1])
-        )
+        level_start_index = torch.cat((spatial_shapes.new_zeros((1,)), spatial_shapes.prod(1).cumsum(0)[:-1]))
 
         return src_flatten, mask_flatten, lvl_pos_embed_flatten, spatial_shapes, level_start_index
 
@@ -540,14 +509,14 @@ class SpatiallyAwareTransformer(nn.Module):
             Final output after cross-attention with learnable queries.
         """
         # Prepare inputs for encoder 1
-        src_flatten1, mask_flatten1, lvl_pos_embed_flatten1, spatial_shapes1, level_start_index1 = (
-            self.prepare_inputs(inputs1["srcs"], inputs1["masks"], inputs1["pos_embeds"])
+        src_flatten1, mask_flatten1, lvl_pos_embed_flatten1, spatial_shapes1, level_start_index1 = self.prepare_inputs(
+            inputs1["srcs"], inputs1["masks"], inputs1["pos_embeds"]
         )
         valid_ratios1 = torch.stack([self.get_valid_ratio(m) for m in inputs1["masks"]], 1)
 
         # Prepare inputs for encoder 2
-        src_flatten2, mask_flatten2, lvl_pos_embed_flatten2, spatial_shapes2, level_start_index2 = (
-            self.prepare_inputs(inputs2["srcs"], inputs2["masks"], inputs2["pos_embeds"])
+        src_flatten2, mask_flatten2, lvl_pos_embed_flatten2, spatial_shapes2, level_start_index2 = self.prepare_inputs(
+            inputs2["srcs"], inputs2["masks"], inputs2["pos_embeds"]
         )
         valid_ratios2 = torch.stack([self.get_valid_ratio(m) for m in inputs2["masks"]], 1)
 
@@ -629,23 +598,13 @@ def test_transformer():
     # masks: 0 - keep, 1 - ignore
     inputs1 = {
         "srcs": [torch.randn(batch_size, d_model, h, w).to(device) for h, w in feature_map_shapes],
-        "masks": [
-            torch.zeros(batch_size, h, w, dtype=torch.bool).to(device).bool()
-            for h, w in feature_map_shapes
-        ],
-        "pos_embeds": [
-            torch.randn(batch_size, d_model, h, w).to(device) for h, w in feature_map_shapes
-        ],
+        "masks": [torch.zeros(batch_size, h, w, dtype=torch.bool).to(device).bool() for h, w in feature_map_shapes],
+        "pos_embeds": [torch.randn(batch_size, d_model, h, w).to(device) for h, w in feature_map_shapes],
     }
     inputs2 = {
         "srcs": [torch.randn(batch_size, d_model, h, w).to(device) for h, w in feature_map_shapes],
-        "masks": [
-            torch.zeros(batch_size, h, w, dtype=torch.bool).to(device).bool()
-            for h, w in feature_map_shapes
-        ],
-        "pos_embeds": [
-            torch.randn(batch_size, d_model, h, w).to(device) for h, w in feature_map_shapes
-        ],
+        "masks": [torch.zeros(batch_size, h, w, dtype=torch.bool).to(device).bool() for h, w in feature_map_shapes],
+        "pos_embeds": [torch.randn(batch_size, d_model, h, w).to(device) for h, w in feature_map_shapes],
     }
 
     print("Running transformer test...")
