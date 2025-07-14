@@ -341,8 +341,10 @@ class SpatiallyAwareTransformer(nn.Module):
             d_model, dim_feedforward, dropout, activation, num_feature_levels, nhead, enc_n_points, num_encoder_layers
         )
 
-        # Adaptive pooling to reduce memory dimension   
-        self.memory_pool = nn.AdaptiveAvgPool1d(self.memory_pool_dim)
+        # Adaptive pooling to reduce memory dimension - is not supported by ONNX, thus, replaced with interpolation 
+        #self.memory_pool = nn.AdaptiveAvgPool1d(self.memory_pool_dim)
+        self.memory_pool = F.interpolate
+        
         # Learnable weight for fusing features from two modalities
         self.alpha = nn.Parameter(torch.tensor(0.5, device=self.device))  
 
@@ -487,9 +489,12 @@ class SpatiallyAwareTransformer(nn.Module):
             lvl_pos_embed_flatten2, mask_flatten2
         )
 
-        # Apply adaptive pooling to reduce memory dimension
-        memory1 = self.memory_pool(memory1.permute(0, 2, 1)).permute(0, 2, 1)
-        memory2 = self.memory_pool(memory2.permute(0, 2, 1 )).permute(0, 2, 1)
+        # Apply adaptive pooling to reduce memory dimension - is not supported by ONNX, thus, replaced with interpolation
+        #memory1 = self.memory_pool(memory1.permute(0, 2, 1)).permute(0, 2, 1)
+        #memory2 = self.memory_pool(memory2.permute(0, 2, 1 )).permute(0, 2, 1)
+        memory1 = self.memory_pool(memory1.permute(0, 2, 1), size=self.memory_pool_dim, mode='linear', align_corners=False).permute(0, 2, 1)
+        memory2 = self.memory_pool(memory2.permute(0, 2, 1), size=self.memory_pool_dim, mode='linear', align_corners=False).permute(0, 2, 1)
+
 
         # Apply cross-attention blocks
         for cross_attn_block in self.cross_attn_blocks:
