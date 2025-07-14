@@ -8,6 +8,7 @@ from vision3d.hooks import Hook
 from vision3d.utils.misc import to_device
 from vision3d.models.base import Vision3DModel
 from vision3d.engine.evaluator import Evaluator
+from vision3d.utils.wandb import WandbLogger
 
 from vision3d.utils.logging import configure_logger
 
@@ -17,16 +18,16 @@ class Trainer:
     def __init__(
         self,
         model: Vision3DModel,  
-        train_loader: DataLoader,
-        val_loader: Optional[DataLoader],
-        optimizer: Optimizer,
-        scheduler: Optional[LRScheduler] = None,
+        train_loader: DataLoader = None,
+        val_loader: DataLoader = None,
+        optimizer: Optimizer = None,
+        scheduler: LRScheduler = None,
         device: Union[str, torch.device] = "cuda",
         max_epochs: int = 100,
-        hooks: Optional[List[Hook]] = None,
+        hooks: List[Hook] = None,
         validate_every: int = 1,
-        evaluator: Optional[Evaluator] = None,
-        wandb_logger: Optional = None,  
+        evaluator: Evaluator = None,
+        wandb_logger: WandbLogger = None,  
     ) -> None:
         self.model = model.to(device)
         self.train_loader = train_loader

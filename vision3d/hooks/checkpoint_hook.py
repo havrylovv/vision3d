@@ -53,6 +53,6 @@ class CheckpointHook(Hook):
         torch.save({
             "model": trainer.model.state_dict(),
             "optimizer": trainer.optimizer.state_dict(),
-            "epoch": trainer.max_epochs,
+            "epoch": trainer.current_epoch,
             "scheduler": trainer.scheduler.state_dict() if trainer.scheduler else None,
         }, path)
