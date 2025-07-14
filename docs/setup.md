@@ -23,3 +23,7 @@ pip install -r requirements.txt
 cd vision3d/models/ops
 bash make.sh
 ```
+5. Install `vision3d` package
+ ```bash 
+pip install -e .
+```
