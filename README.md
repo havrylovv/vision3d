@@ -6,8 +6,10 @@
 
 **Key features:**
 - Utilizes two ResNet encoders to extract multi-scale features from RGB images and structured Point Clouds (PC).
-- Leverages the `SpatiallyAwareTransformer` to efficiently fuse these modalities using CUDA-optimized Deformable Self-Attention, followed by Cross-Attention modules.
+- Leverages the `SpatiallyAwareTransformer` to efficiently fuse these modalities using CUDA-optimized Deformable Self-Attention, followed by Cross-Attention modules. Refer to [diagram](./assets/spatially_aware_transformer_diagram.png) for details. 
 - Enhances the image encoder by introducing a proxy task that predicts meaningful segmentation masks for regularization.
+
+![Diagram](./assets/mono_detr3d_diagram.png)
 
 ## Project Structure 
 ```
