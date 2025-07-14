@@ -1,10 +1,7 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 from abc import ABC, abstractmethod
-from typing import Dict, List, Optional, Tuple, Union
-import torchvision.models as models
-from vision3d.utils.registry import MODELS
+from typing import Dict, Optional, Union
 
 class RGBEncoderBase(nn.Module, ABC):
     """
@@ -56,7 +53,7 @@ class RGBEncoderBase(nn.Module, ABC):
             
         Returns:
             If multiscale=False: Feature tensor of shape (B, C, H', W')
-            If multiscale=True: Dict with keys ['layer1', 'layer2', 'layer3'] containing
+            If multiscale=True: Dict with keys ['layer1', 'layer2', 'layer3', ...] containing
                                features from different spatial scales
         """
         pass

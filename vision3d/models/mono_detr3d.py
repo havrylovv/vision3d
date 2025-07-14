@@ -3,7 +3,6 @@ from torch import Tensor
 from torch import nn
 from vision3d.models.base import Vision3DModel
 from typing import Optional
-
 from vision3d.utils.build import build_model, build_loss
 from typing import List, Dict, Tuple
 from vision3d.utils.registry import MODELS
@@ -11,6 +10,21 @@ from vision3d.models.modelling.utils.pos_embed import PositionEmbeddingSine
     
 @MODELS.register()
 class MonoDETR3D(Vision3DModel):
+    """
+    MonoDETR3D: A model for monocular 3D object detection with auxiliary point cloud input.
+
+    This model leverages separate encoders to process image and point cloud data, 
+    fuses the extracted features using a fusion transformer, and predicts 3D bounding 
+    boxes. Optionally, it can also predict segmentation masks using a dedicated mask head.
+
+    Key Components:
+    - Image Encoder: Extracts multi-scale features from the input image.
+    - Point Cloud Encoder: Processes the point cloud data to extract multi-scale features.
+    - Fusion Transformer: Fuses image and point cloud features for joint reasoning.
+    - Bounding Box Head: Predicts 3D bounding boxes from fused features.
+    - Mask Head (Optional): Generates segmentation masks from image features.
+    """
+
     def __init__(self,
                 image_encoder: dict,
                 pc_encoder: dict,

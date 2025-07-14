@@ -10,6 +10,7 @@ from .rgb_encoder import RGBEncoderBase
 class EfficientNetEncoder(RGBEncoderBase):
     """
     EfficientNet-based RGB encoder for 3D vision tasks.
+    Note: for usage as input to Spatially Aware Transformer it needs to be extended to output 4 scales of features.
     
     Supports EfficientNet-B0 to EfficientNet-B7 architectures.
     """

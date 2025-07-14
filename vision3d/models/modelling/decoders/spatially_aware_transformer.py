@@ -4,7 +4,7 @@ Idea:
 -> Recieves multi-scale features from two modalities (e.g. LiDAR and Camera)
 -> Encodes each modality using a visual encoder with multi-scale deformable attention
 -> Applies cross-attention between the two modalities
--> Applies Cross-Attention between the fused modality and learnable queries and Self-Attention among queries
+-> Applies Cross-Attention between the fused modality and learnable queries and Self-Attention 
 -> Outputs refined queries for object detection
 
 VisualEncoder part is inpired and implemented from MonoDETR: https://github.com/ZrrSkywalker/MonoDETR
@@ -24,7 +24,7 @@ from vision3d.models.ops.modules import MSDeformAttn
 from torch.nn import MultiheadAttention 
 from vision3d.utils.registry import MODELS
 
-### UTILITIES ###
+
 def generate_sine_position_embedding(pos_tensor: Tensor) -> Tensor:
     """
     Generate sinusoidal position embeddings for given position tensor.
@@ -92,8 +92,6 @@ def _get_activation_fn(activation: str) -> callable:
         raise RuntimeError(f"Activation should be one of {list(activation_map.keys())}, got {activation}")
     
     return activation_map[activation]
-### UTILITES: END ###
-
 
 class VisualEncoderLayer(nn.Module):
     """Single layer of the visual encoder.
@@ -162,7 +160,6 @@ class VisualEncoderLayer(nn.Module):
         src = self.forward_ffn(src)
         
         return src
-    
 
 class VisualEncoder(nn.Module):
     """Visual encoder with multiple layers."""
@@ -318,7 +315,7 @@ class SpatiallyAwareTransformer(nn.Module):
         Args:
             d_model: Hidden dimension.
             nhead: Number of attention heads.
-            num_encoder_layers: Number of encoder layers.
+            num_encoder_layers: Number of encoder layers for each modality.
             dim_feedforward: Feed-forward network dimension.
             dropout: Dropout rate.
             activation: Activation function ('relu', 'gelu', 'glu').
@@ -327,6 +324,8 @@ class SpatiallyAwareTransformer(nn.Module):
             cross_attn_layers: Number of cross-attention layers between modalities.
             query_dim: Dimension of learnable queries.
             num_queries: Number of learnable queries.
+            memory_pool_dim: Dimension of the memory pool after adaptive pooling.
+            decoder_layers: Number of decoder layers for progressive refinement.
         """
         super().__init__()
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -513,8 +512,6 @@ class SpatiallyAwareTransformer(nn.Module):
 
         return queries
 
-
-
 def test_transformer():
     """
     Test the transformer with dummy inputs.
@@ -558,11 +555,6 @@ def test_transformer():
     final_output = transformer(inputs1, inputs2)
     print("Transformer test completed.")
     print(f"Final output shape: {final_output.shape}")
-
-    # cound params in M 
-    num_params = sum(p.numel() for p in transformer.parameters() if p.requires_grad) 
-    print(f"Number of trainable parameters: {num_params}")
-
 
 if __name__ == "__main__":
     test_transformer()

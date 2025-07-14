@@ -36,8 +36,6 @@ class SimpleSegHead(nn.Module):
         Returns:
             Binary mask of shape (B, out_channels, H, W).
         """
-        # If input is a dict, extract layer4
-        
         x = self._validate_input(x)
 
         x = self.conv1(x)
@@ -61,8 +59,6 @@ class SimpleSegHead(nn.Module):
                 raise ValueError("Input dict must contain 'layer1' key.")
             x = x['layer1']
 
-        # Validate input shape
         if x.dim() != 4:
             raise ValueError(f"Expected input of shape (B, C, H, W), but got {x.shape}")
-        
         return x

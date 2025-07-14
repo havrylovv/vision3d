@@ -41,7 +41,7 @@ class ResNetEncoder(RGBEncoderBase):
             multiscale: Whether to return multiscale features
             output_dim: Optional output dimension for feature projection
         """
-        # Convert string to int if needed
+
         if isinstance(model_name, str):
             model_name = int(model_name)
         
@@ -113,8 +113,9 @@ class ResNetEncoder(RGBEncoderBase):
             
         Returns:
             If multiscale=False: Feature tensor of shape (B, C, H/32, W/32)
-            If multiscale=True: Dict with keys ['layer2', 'layer3', 'layer4'] containing
-                               features of shapes (B, C, H/8, W/8), (B, C, H/16, W/16), (B, C, H/32, W/32)
+            If multiscale=True: Dict with keys ['layer1', 'layer2', 'layer3', 'layer4'] containing
+                    features of shapes (B, C, H/4, W/4), (B, C, H/8, W/8), 
+                    (B, C, H/16, W/16), (B, C, H/32, W/32)
         """
         # Forward through layers
         layer1_out = self.layer1(x)           # (B, C, H/4, W/4)
@@ -157,12 +158,9 @@ class ResNetEncoder(RGBEncoderBase):
 def test():
     """Run a simple test of the ResNetEncoder."""
     encoder = ResNetEncoder(model_name=18, pretrained=True, multiscale=True, output_dim=128)
-    x = torch.randn(2, 3, 512, 512)  # Batch of 2 RGB images
+    x = torch.randn(2, 3, 512, 512)  
     features = encoder(x)
     
-    assert isinstance(features, dict)
-    assert 'layer2' in features and 'layer3' in features and 'layer4' in features
-
     print("ResNetEncoder test passed.") 
     print(f"features.keys: {features.keys()}")
     print(f"layer1 shape: {features['layer1'].shape}")

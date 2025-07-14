@@ -94,7 +94,6 @@ class SimpleBbox3DHead(nn.Module):
             Returns:
                 Output tensor of shape (B, num_q, 10), where 10 = [center (3), size (3), quaternion (4)].
             """
-            # Validate input shape
             if queries.dim() != 3:
                 raise ValueError(f"Expected input of shape (B, num_q, d_model), but got {queries.shape}")
                     
@@ -114,7 +113,7 @@ class SimpleBbox3DHead(nn.Module):
             class_logits = self.class_head(queries)
             
             # Concatenate predictions along the last dimension
-            pred_bbox3d = torch.cat([center, size, quaternion], dim=-1)  # Shape: (B, num_q, 10)
+            pred_bbox3d = torch.cat([center, size, quaternion], dim=-1)  # (B, num_q, 10)
             
             output = {
                 'pred_bbox3d': pred_bbox3d,  # (B, num_q, 10)

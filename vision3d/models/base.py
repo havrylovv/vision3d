@@ -8,7 +8,6 @@ class Vision3DModel(ABC, nn.Module):
     def forward(self, *args, **kwargs):
         """
         Perform a forward pass of the model.
-        This method must be implemented by all subclasses.
         """
         pass
 
