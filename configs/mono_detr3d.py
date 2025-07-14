@@ -4,14 +4,59 @@ from torchvision import transforms
 seed = 12345
 epochs = 100
 
-target_hw = (224, 224)
+target_hw = (512, 640)  # Height, Width
+dataset_root = "/home/hao1rng/sec_proj/dataset"
+
 device = "cuda"
+
 use_wandb = True
 wandb_project_name = "vision3d"
+
 # Define input shape for the model, needed only for ONNX export
 input_shape = [(1, 3, target_hw[0], target_hw[1]), (1, 3, target_hw[0], target_hw[1])]
 
+
+# Training configuration
+train = dict(
+    batch_size=4,
+    num_workers=4,
+    epochs=epochs,
+)
+
+val = dict(
+    batch_size=1,
+    num_workers=4,
+)
+
+# Data augmentation and preprocessing
 train_transforms = dict(
+    rgb=transforms.Compose(
+        [
+            transforms.Resize((target_hw)),
+            transforms.RandomGrayscale(p=0.1),
+            transforms.RandomApply(
+                [transforms.ColorJitter(brightness=0.2, contrast=0.2, saturation=0.2, hue=0.1)], p=0.3
+            ),
+            transforms.ToTensor(),
+        ]
+    ),
+    pc=transforms.Compose(
+        [
+            transforms.Lambda(
+                lambda x: F.interpolate(x.unsqueeze(0), size=(target_hw), mode="bilinear", align_corners=False).squeeze(
+                    0
+                )
+            ),
+        ]
+    ),
+    mask=transforms.Compose(
+        [
+            transforms.Resize((target_hw)),
+        ]
+    ),
+)
+
+val_transforms = dict(
     rgb=transforms.Compose(
         [
             transforms.Resize((target_hw)),
@@ -34,9 +79,10 @@ train_transforms = dict(
     ),
 )
 
+# Dataset configuration
 train_dataset = dict(
     type="Detection3DDataset",
-    dataset_root="/home/hao1rng/sec_proj/processed_dataset",
+    dataset_root=dataset_root,
     split="train",
     transform=train_transforms,
     return_sample_id=True,
@@ -46,18 +92,17 @@ train_dataset = dict(
 
 val_dataset = dict(
     type="Detection3DDataset",
-    dataset_root="/home/hao1rng/sec_proj/processed_dataset",
+    dataset_root=dataset_root,
     split="val",
-    transform=train_transforms,
+    transform=val_transforms,
     return_sample_id=True,
     fix_bbox_corners_order=True,
     bbox_corners_to_oob=True,
 )
-
 test_dataset = val_dataset
 
+# Model configuration
 d_model = 256
-
 model = dict(
     type="MonoDETR3D",
     image_encoder=dict(
@@ -113,7 +158,7 @@ model = dict(
     ),
 )
 
-
+# Evaluator configuration
 evaluator = dict(
     type="Evaluator",
     matcher=dict(type="HungarianMatcher3D_OBB"),
@@ -130,19 +175,8 @@ hooks = [
     dict(
         type="LossLoggingHook",
     ),
-    dict(type="CheckpointHook", output_dir="./checkpoints_detr3d", save_every=10, save_best=True),
+    dict(type="CheckpointHook", output_dir="./checkpoints_detr3d", save_every=1, save_best=True),
 ]
-
-train = dict(
-    batch_size=3,
-    num_workers=4,
-    epochs=epochs,
-)
-
-val = dict(
-    batch_size=1,
-    num_workers=4,
-)
 
 
 optimizer = dict(type="Adam", lr=0.001, weight_decay=0.0005)
@@ -155,6 +189,6 @@ optimizer = dict(type="Adam", lr=0.001, weight_decay=0.0005)
 
 scheduler = dict(
     type="CosineAnnealingLR",
-    T_max=epochs,  # Remaining epochs (100 - 5 warmup)
+    T_max=epochs,
     eta_min=1e-6,  # Minimum learning rate
 )
