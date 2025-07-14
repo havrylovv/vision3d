@@ -1,3 +1,5 @@
+"""Core evaluator class for computing evaluation metrics in 3D vision tasks."""
+
 from typing import List, Dict, Any, Optional, Union
 import torch
 from torch.utils.data import DataLoader

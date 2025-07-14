@@ -1,3 +1,5 @@
+""" Multi-loss class for 3D Oriented Bounding Box (OBB) detection."""
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -9,16 +11,16 @@ from vision3d.utils.registry import LOSSES
 @LOSSES.register()
 class MultiLoss3D_OBB(nn.Module):
     """
-    Multi-loss function for 3D Oriented Bounding Box (OBB) detection.
+    Multi-loss class for 3D Oriented Bounding Box (OBB) detection.
     
-    Handles 10D bbox representation: [center_x, center_y, center_z, size_x, size_y, size_z, qw, qx, qy, qz]
+    Handles 10D bbox representation: [center_x, center_y, center_z, size_x, size_y, size_z, qx, qy, qz. qw]
     
     Combines multiple loss components:
-    - Focal Loss for classification (handles class imbalance)
-    - L1 Loss for center regression
-    - Size Loss for dimension estimation
-    - Quaternion Loss for orientation (handles rotation continuity)
-    - IoU Loss for 3D overlap (geometry-aware)
+        - Focal Loss for classification (handles class imbalance)
+        - L1 Loss for center regression
+        - Size Loss for dimension estimation
+        - Quaternion Loss for orientation (handles rotation continuity)
+        - Mask Loss for segmentation (optional)
     """
     
     def __init__(self, matcher_cfg: dict, weight_dict: Optional[dict] = None, use_mask: bool = False):
@@ -34,7 +36,7 @@ class MultiLoss3D_OBB(nn.Module):
             'loss_size': 4.0,        # Size regression loss
             'loss_quaternion': 4.0,  # Quaternion orientation loss
             'loss_focal': 2.0,       # Focal loss for classification
-            'loss_depth': 1.0,       # Depth consistency loss
+            'loss_mask': 1.0         # Mask loss for segmentation (if used)
         }
         
         # Focal loss parameters

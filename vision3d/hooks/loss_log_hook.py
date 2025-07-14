@@ -1,5 +1,5 @@
-import json
-import os
+"""Loss Logging Hook for Vision3D Trainer"""
+
 from collections import defaultdict
 from typing import Union, Optional
 from vision3d.hooks import Hook
