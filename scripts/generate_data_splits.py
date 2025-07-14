@@ -76,7 +76,11 @@ def create_train_val_split(
     np.random.seed(random_seed)
 
     # First split: separate test set
-    train_val_samples, test_samples = train_test_split(samples, test_size=test_ratio, random_state=random_seed)
+    if test_ratio == 0:
+        test_samples = []
+        train_val_samples = samples
+    else:
+        train_val_samples, test_samples = train_test_split(samples, test_size=test_ratio, random_state=random_seed)
 
     # Second split: separate train and val
     adjusted_val_ratio = val_ratio / (1 - test_ratio)

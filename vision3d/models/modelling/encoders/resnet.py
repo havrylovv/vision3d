@@ -6,7 +6,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.models as models
 
-from vision3d.models.modelling.encoders import RGBEncoderBase
+from vision3d.models.modelling.encoders.rgb_encoder import RGBEncoderBase
 from vision3d.utils.registry import MODELS
 
 

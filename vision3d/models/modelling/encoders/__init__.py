@@ -1,9 +1,4 @@
 from .efficientnet import EfficientNetEncoder
 from .resnet import ResNetEncoder
-from .rgb_encoder import RGBEncoderBase
 
-__all__ = [
-    "RGBEncoderBase",
-    "ResNetEncoder",
-    "EfficientNetEncoder",
-]
+__all__ = ["ResNetEncoder", "EfficientNetEncoder"]
