@@ -6,9 +6,11 @@ seed = 12345
 epochs = 100
 
 target_hw = (224, 224)
-
+device = "cuda" 
 use_wandb=True
 wandb_project_name="vision3d"
+# Define input shape for the model, needed only for ONNX export
+input_shape = [(1, 3, target_hw[0], target_hw[1]), (1, 3, target_hw[0], target_hw[1])]  
 
 train_transforms = dict(
     rgb=transforms.Compose([
@@ -42,6 +44,8 @@ val_dataset = dict(
     fix_bbox_corners_order=True,
     bbox_corners_to_oob=True,
 )
+
+test_dataset = val_dataset
 
 d_model = 256
 
@@ -111,7 +115,7 @@ evaluator = dict(
         dict(type="mASEMetric"),
         dict(type="mATEMetric"),
     ],
-    device="cuda",
+    device=device,
 )   
 
 hooks = [
@@ -120,7 +124,7 @@ hooks = [
 ]
 
 train = dict(
-    batch_size=16,
+    batch_size=3,
     num_workers=4,
     epochs=epochs,
 )
