@@ -1,0 +1,9 @@
+scikit-learn==1.7.0
+matplotlib==3.10.1
+opencv-python==4.10.0.84
+easydict
+wandb
+ipykernel
+plotly==6.1.0
+onnx
+pre-commit

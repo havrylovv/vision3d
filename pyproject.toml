@@ -1,7 +1,7 @@
 [project]
 name = "vision3d"
 dynamic = ["version"]
-description = "ToDO"
+description = "Simple project for managing trainng of 3D Computer Vision models. Note: does not include dependencies."
 authors = [
     { name = "Volodymyr Havrylov", email = "volodymyr.havrylov01@gmail.com" },
 ]

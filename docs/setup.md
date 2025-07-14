@@ -1,32 +1,25 @@
-# Install 
+# Vision 3D installation  
+
+- Vision3D has been developed and tested with Python 3.10, PyTorch 2.4.0, CUDA 11.8, and NVIDIA V100. The code is expected to work with newer versions as well.
+
+1. Create conda environment
 ```bash 
 conda create --name vis3d python=3.10
 conda activate vis3d
-pip install torch==2.5.0 torchvision==0.20.0 --index-url https://download.pytorch.org/whl/cu118
-pip install scikit-learn==1.7.0
-pip install matplotlib==3.10.1
-pip install opencv-python==4.10.0.84
-
-# viz
-pip intall ipykernel
-pip install plotly==6.1.0
 ```
 
-# Prepare data 
-
-
+2. Install torch
 ```bash 
-conda create --name vis3d-2 python=3.10
-conda activate vis3d-2
 pip install torch==2.4.0 torchvision==0.19.0 torchaudio==2.4.0 --index-url https://download.pytorch.org/whl/cu118
-pip install scikit-learn==1.7.0
-pip install matplotlib==3.10.1
-pip install opencv-python==4.10.0.84
-pip install easydict
-pip install wandb
+```
 
-# viz
-pip install ipykernel
-pip install plotly==6.1.0
+3. Install dependencies
+```bash 
+pip install -r requirements.txt
+```
 
+4. Build custom CUDA kernels for Deformable Attention
+```bash 
+cd vision3d/models/ops
+bash make.sh
 ```
