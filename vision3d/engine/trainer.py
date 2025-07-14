@@ -9,6 +9,10 @@ from vision3d.utils.misc import to_device
 from vision3d.models.base import Vision3DModel
 from vision3d.engine.evaluator import Evaluator
 
+from vision3d.utils.logging import configure_logger
+
+logger = configure_logger(__name__.split('.')[-1])
+
 class Trainer:
     def __init__(
         self,
@@ -115,13 +119,13 @@ class Trainer:
         if self.last_val_metrics is None:
             return
             
-        print(f"\nEpoch {epoch} Validation Metrics:")
+        logger.info(f"[Epoch {epoch}] VAL Metrics:")
         for metric_name, metric_values in self.last_val_metrics.items():
             if isinstance(metric_values, dict):
                 for sub_metric, value in metric_values.items():
-                    print(f"  {metric_name}_{sub_metric}: {value:.4f}")
+                    logger.info(f"  {metric_name}_{sub_metric}: {value:.4f}")
             else:
-                print(f"  {metric_name}: {metric_values:.4f}")
+                logger.info(f"  {metric_name}: {metric_values:.4f}")
         
         # Log validation metrics to wandb
         if self.wandb_logger and self.wandb_logger.is_enabled():
