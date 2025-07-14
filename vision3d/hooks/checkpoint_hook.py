@@ -1,21 +1,23 @@
 """Checkpoint Hook for Vision3D Trainer"""
 
 import os
-import torch
 from typing import Optional
-from vision3d.hooks import Hook
-from vision3d.engine.trainer import Trainer
 
+import torch
+
+from vision3d.engine.trainer import Trainer
+from vision3d.hooks import Hook
 from vision3d.utils.logging import configure_logger
 from vision3d.utils.registry import HOOKS
 
-logger = configure_logger(__name__.split('.')[-1])
+logger = configure_logger(__name__.split(".")[-1])
+
 
 @HOOKS.register()
 class CheckpointHook(Hook):
     """
     Hook to save model checkpoints at the end of each epoch.
-    
+
     Args:
         output_dir (str): Directory to save checkpoints.
         save_every (int): Save checkpoint every N epochs.
@@ -34,7 +36,7 @@ class CheckpointHook(Hook):
         self.output_dir = save_dir
         os.makedirs(self.output_dir, exist_ok=True)
         logger.info(f"Checkpoint output directory set to {self.output_dir}")
-        
+
     def after_train_epoch(self, epoch: int, trainer: Trainer) -> None:
         # Save regular checkpoint
         if (epoch + 1) % self.save_every == 0:
@@ -52,9 +54,12 @@ class CheckpointHook(Hook):
                 logger.info(f"Saved new best model (val_loss={val_loss:.4f}) to {best_path}")
 
     def _save_checkpoint(self, trainer: Trainer, path: str) -> None:
-        torch.save({
-            "model": trainer.model.state_dict(),
-            "optimizer": trainer.optimizer.state_dict(),
-            "epoch": trainer.current_epoch,
-            "scheduler": trainer.scheduler.state_dict() if trainer.scheduler else None,
-        }, path)
+        torch.save(
+            {
+                "model": trainer.model.state_dict(),
+                "optimizer": trainer.optimizer.state_dict(),
+                "epoch": trainer.current_epoch,
+                "scheduler": trainer.scheduler.state_dict() if trainer.scheduler else None,
+            },
+            path,
+        )

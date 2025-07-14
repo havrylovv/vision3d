@@ -1,19 +1,29 @@
 """Script to train a 3D vision model using a configuration file."""
 
 import argparse
-import os
-from torch.utils.data import DataLoader
-from vision3d.utils.config import load_config
-from vision3d.engine.trainer import Trainer
-from vision3d.utils.misc import seed_everything
-from vision3d.utils.build import build_model, build_dataset, build_hook, build_optimizer, build_scheduler, build_utils
-from vision3d.datasets.detection3d_dataset import collate_fn
-from pprint import pprint
-from vision3d.utils.wandb import WandbLogger
 import datetime
+import os
+from pprint import pprint
+
+from torch.utils.data import DataLoader
+
+from vision3d.datasets.detection3d_dataset import collate_fn
+from vision3d.engine.trainer import Trainer
+from vision3d.utils.build import (
+    build_dataset,
+    build_hook,
+    build_model,
+    build_optimizer,
+    build_scheduler,
+    build_utils,
+)
+from vision3d.utils.config import load_config
 from vision3d.utils.logging import configure_logger
+from vision3d.utils.misc import seed_everything
+from vision3d.utils.wandb import WandbLogger
 
 logger = configure_logger(__name__.split(".")[-1])
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Train a 3D vision model")
@@ -21,6 +31,7 @@ def parse_args():
     parser.add_argument("--save_dir", required=True, help="Directory to save logs and checkpoints")
     parser.add_argument("--use_wandb", action="store_true", help="Enable wandb logging")
     return parser.parse_args()
+
 
 def check_core_components(cfg):
     required_keys = ["model", "train", "optimizer"]
@@ -30,6 +41,7 @@ def check_core_components(cfg):
 
     if "hooks" in cfg and not isinstance(cfg["hooks"], list):
         raise ValueError("Hooks configuration must be a list of dictionaries")
+
 
 def main():
     timestamp = datetime.datetime.now().strftime("%Y_%m_%d__%H_%M_%S")
@@ -44,7 +56,7 @@ def main():
     os.makedirs(save_dir, exist_ok=True)
 
     if "seed" in cfg:
-        seed_everything(cfg.seed)   
+        seed_everything(cfg.seed)
         logger.info(f"Set random seed to {cfg.seed}")
 
     # Initialize wandb logger
@@ -86,21 +98,21 @@ def main():
     scheduler = build_scheduler(cfg.scheduler, optimizer) if "scheduler" in cfg else None
     hooks = []
     for h in cfg.get("hooks", []):
-        
+
         hook = build_hook(h)
-         # Inject save_dir into hooks that support it (like CheckpointHook)
-        if hasattr(hook, 'set_save_dir'):
+        # Inject save_dir into hooks that support it (like CheckpointHook)
+        if hasattr(hook, "set_save_dir"):
             hook.set_save_dir(save_dir)
             logger.info(f"Injected save_dir into {hook.__class__.__name__}")
-        
+
         # Inject wandb_logger into hooks that support it
-        if hasattr(hook, 'set_wandb_logger'):
+        if hasattr(hook, "set_wandb_logger"):
             hook.set_wandb_logger(wandb_logger)
             logger.info(f"Injected wandb_logger into {hook.__class__.__name__}")
         hooks.append(hook)
 
     evaluator = build_utils(cfg.evaluator) if "evaluator" in cfg else None
-    
+
     trainer = Trainer(
         model=model,
         train_loader=train_loader,
@@ -111,7 +123,7 @@ def main():
         max_epochs=cfg.train.epochs,
         hooks=hooks,
         evaluator=evaluator,
-        wandb_logger=wandb_logger
+        wandb_logger=wandb_logger,
     )
 
     logger.info(f"Training configuration: {pprint(cfg, indent=4)}")

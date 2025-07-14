@@ -1,6 +1,6 @@
-from .pos_embed import PositionEmbeddingSine, PositionEmbeddingLearned
+from .pos_embed import PositionEmbeddingLearned, PositionEmbeddingSine
 
 __all__ = [
-    'PositionEmbeddingSine',
-    'PositionEmbeddingLearned',      
+    "PositionEmbeddingSine",
+    "PositionEmbeddingLearned",
 ]

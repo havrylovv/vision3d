@@ -6,6 +6,4 @@
 # Modified from https://github.com/chengdazhi/Deformable-Convolution-V2-PyTorch/tree/pytorch_1.0.0
 # ------------------------------------------------------------------------------------------------
 
-from .ms_deform_attn import MSDeformAttn
-from .ms_deform_attn import MultiheadAttention
-from .ms_deform_attn import MSDeformAttn_cross
+from .ms_deform_attn import MSDeformAttn, MSDeformAttn_cross, MultiheadAttention

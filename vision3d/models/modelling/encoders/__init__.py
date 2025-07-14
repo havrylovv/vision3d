@@ -1,6 +1,6 @@
-from .rgb_encoder import RGBEncoderBase
+from .efficientnet import EfficientNetEncoder
 from .resnet import ResNetEncoder
-from .efficientnet import EfficientNetEncoder   
+from .rgb_encoder import RGBEncoderBase
 
 __all__ = [
     "RGBEncoderBase",

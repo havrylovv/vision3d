@@ -1,3 +1,1 @@
-from . import heads
-from . import encoders
-from . import decoders
+from . import decoders, encoders, heads

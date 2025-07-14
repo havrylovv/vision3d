@@ -1,23 +1,27 @@
 """Loss Logging Hook for Vision3D Trainer"""
 
 from collections import defaultdict
-from typing import Union, Optional
-from vision3d.hooks import Hook
-from vision3d.utils.registry import HOOKS
-from vision3d.utils.logging import configure_logger
+from typing import Optional, Union
 
-logger = configure_logger(__name__.split('.')[-1])
+from vision3d.hooks import Hook
+from vision3d.utils.logging import configure_logger
+from vision3d.utils.registry import HOOKS
+
+logger = configure_logger(__name__.split(".")[-1])
+
 
 @HOOKS.register()
 class LossLoggingHook(Hook):
-    def __init__(self, 
-                 log_interval: int = 100,
-                 aggregate_train_loss: bool = True,
-                 aggregate_val_loss: bool = True):
+    def __init__(
+        self,
+        log_interval: int = 100,
+        aggregate_train_loss: bool = True,
+        aggregate_val_loss: bool = True,
+    ):
         self.log_interval = log_interval
         self.aggregate_train_loss = aggregate_train_loss
         self.aggregate_val_loss = aggregate_val_loss
-        self.wandb_logger = None  
+        self.wandb_logger = None
 
         self.train_loss_buffer = []
         self.val_loss_buffer = []
@@ -38,37 +42,45 @@ class LossLoggingHook(Hook):
     def after_train_step(self, step: int, trainer):
         loss = trainer.last_train_loss
         self._append_loss(self.train_loss_buffer, loss)
-        
+
         if self.aggregate_train_loss and (step + 1) % self.log_interval == 0:
-            self._log_loss(trainer.current_epoch, step + 1, self.train_total_steps, "TRAIN", self.train_loss_buffer)
+            self._log_loss(
+                trainer.current_epoch,
+                step + 1,
+                self.train_total_steps,
+                "TRAIN",
+                self.train_loss_buffer,
+            )
             self.train_loss_buffer.clear()
 
     def after_train_epoch(self, epoch: int, trainer):
         if self.aggregate_train_loss and self.train_loss_buffer:
             avg_losses = self._log_loss(epoch, None, None, "TRAIN", self.train_loss_buffer)
-            
+
             # Log train epoch losses to wandb using epoch as step
             if self.wandb_logger and self.wandb_logger.is_enabled() and avg_losses:
                 self._log_to_wandb(avg_losses, "train", epoch)
-            
+
             self.train_loss_buffer.clear()
 
     def after_val_step(self, step: int, trainer):
         loss = trainer.last_val_step_loss
         self._append_loss(self.val_loss_buffer, loss)
-        
+
         if self.aggregate_val_loss and (step + 1) % self.log_interval == 0:
-            self._log_loss(trainer.current_epoch, step + 1, self.val_total_steps, "VAL", self.val_loss_buffer)
+            self._log_loss(
+                trainer.current_epoch, step + 1, self.val_total_steps, "VAL", self.val_loss_buffer
+            )
             self.val_loss_buffer.clear()
 
     def after_val_epoch(self, epoch: int, trainer):
         if self.aggregate_val_loss and self.val_loss_buffer:
             avg_losses = self._log_loss(epoch, None, None, "VAL", self.val_loss_buffer)
-            
+
             # Log validation epoch losses to wandb using epoch as step
             if self.wandb_logger and self.wandb_logger.is_enabled() and avg_losses:
                 self._log_to_wandb(avg_losses, "val", epoch)
-            
+
             self.val_loss_buffer.clear()
 
     def _log_to_wandb(self, loss_data, phase_prefix, epoch):
@@ -76,7 +88,7 @@ class LossLoggingHook(Hook):
         if not self.wandb_logger or not self.wandb_logger.is_enabled():
             logger.debug(f"WandB logger not available or disabled")
             return
-        
+
         # Format metrics with phase prefix
         if isinstance(loss_data, dict):
             formatted_data = {}
@@ -85,11 +97,14 @@ class LossLoggingHook(Hook):
                 formatted_data[metric_name] = value
         else:
             formatted_data = {f"{phase_prefix}/loss": loss_data}
-        
+
         # Log to wandb using epoch as step
         try:
             import wandb
-            wandb.log(formatted_data, step=epoch, commit=False)  # commit=False allows logging under the same epoch several times
+
+            wandb.log(
+                formatted_data, step=epoch, commit=False
+            )  # commit=False allows logging under the same epoch several times
         except Exception as e:
             logger.warning(f"Failed to log to wandb: {e}")
 
@@ -99,10 +114,12 @@ class LossLoggingHook(Hook):
         else:
             buffer.append(loss.item() if hasattr(loss, "item") else loss)
 
-    def _log_loss(self, epoch: int, step: Union[int, None], total: Union[int, None], phase: str, buffer):
+    def _log_loss(
+        self, epoch: int, step: Union[int, None], total: Union[int, None], phase: str, buffer
+    ):
         if not buffer:
             return None
-            
+
         if isinstance(buffer[0], dict):
             aggregated = defaultdict(float)
             for loss_dict in buffer:
@@ -121,5 +138,5 @@ class LossLoggingHook(Hook):
             logger.info(f"[Epoch {epoch} {step}/{total}] {phase} - {loss_str}")
         else:
             logger.info(f"[Epoch {epoch}] {phase} - {loss_str}")
-        
+
         return result

@@ -13,3 +13,20 @@ pip install plotly==6.1.0
 ```
 
 # Prepare data 
+
+
+```bash 
+conda create --name vis3d-2 python=3.10
+conda activate vis3d-2
+pip install torch==2.4.0 torchvision==0.19.0 torchaudio==2.4.0 --index-url https://download.pytorch.org/whl/cu118
+pip install scikit-learn==1.7.0
+pip install matplotlib==3.10.1
+pip install opencv-python==4.10.0.84
+pip install easydict
+pip install wandb
+
+# viz
+pip install ipykernel
+pip install plotly==6.1.0
+
+```

@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
+
 from torch import nn
+
 
 class Vision3DModel(ABC, nn.Module):
     """Abstract base class for Vision3D models."""
@@ -23,7 +25,11 @@ class Vision3DModel(ABC, nn.Module):
         pass
 
     @abstractmethod
-    def evaluate(self, inputs: dict, targets: dict,):
+    def evaluate(
+        self,
+        inputs: dict,
+        targets: dict,
+    ):
         """
         Evaluate the model on the given data.
         Args:

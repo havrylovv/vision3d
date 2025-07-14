@@ -1,5 +1,6 @@
 from abc import ABC
 
+
 class Hook(ABC):
     """
     Abstract base class for training hooks.
