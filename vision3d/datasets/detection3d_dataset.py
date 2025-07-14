@@ -1,5 +1,5 @@
-import os
-import json
+"""Core dataset for 3D detection tasks with RGB images, point clouds, masks, and 3D bounding boxes."""
+
 import numpy as np
 from PIL import Image
 from pathlib import Path
@@ -203,48 +203,12 @@ def collate_fn(batch: List[Tuple[Dict[str, Any], Dict[str, Any]]]
 
     # Collate targets
     batched_targets = {
-        'mask': [target['mask'] for target in targets_list],           # list of [num_objects_i, H, W]
-        'bbox3d': [target['bbox3d'] for target in targets_list],       # list of [num_objects_i, 8, 3] or [num_objects_i, 10] (OOB)
-        'labels': [target['labels'] for target in targets_list],       # list of [num_objects_i]
+        'mask': [target['mask'] for target in targets_list],           # list of [num_obj, H, W]
+        'bbox3d': [target['bbox3d'] for target in targets_list],       # list of [num_obj, 8, 3] or [num_obj, 10] (OOB)
+        'labels': [target['labels'] for target in targets_list],       # list of [num_obj]
     }
 
     if 'sample_id' in targets_list[0]:
         batched_targets['sample_id'] = [target['sample_id'] for target in targets_list]
 
     return batched_inputs, batched_targets
-
-
-def create_transforms_modular_test():
-    transform = dict()
-    transform['rgb'] = transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.ToTensor(),
-    ])
-    transform['pc'] = transforms.Compose([
-        transforms.Lambda(lambda x: F.interpolate(x.unsqueeze(0), size=(224, 224), mode='bilinear', align_corners=False).squeeze(0)),
-    ])
-    transform['mask'] = transforms.Compose([
-        transforms.Resize((224, 224)),
-    ])    
-    return transform    
-
-def test():
-    dataset_root = "/home/hao1rng/sec_proj/processed_dataset"
-    split = "train"
-    transform = create_transforms_modular_test()
-    
-    dataset = Detection3DDataset(dataset_root=dataset_root, split=split, transform=transform, return_sample_id=True, fix_bbox_corners_order=True, bbox_corners_to_oob=True)
-    dataloader = DataLoader(dataset, batch_size=2, shuffle=True, collate_fn=collate_fn)
-    
-    for batch in dataloader:
-        inputs, targets = batch
-        print("Batch inputs:", {k: v.shape if isinstance(v, torch.Tensor) else v for k, v in inputs.items()})
-        print("Batch targets:", {k: v.shape if isinstance(v, torch.Tensor) else len(v) for k, v in targets.items()})
-
-        print(f"Targets: mask shapes: {[mask.shape for mask in targets['mask']]}")
-        print(f"Targets: bbox3d shapes: {[bbox.shape for bbox in targets['bbox3d']]}")
-        print(f"Targets: labels shapes: {[label.shape for label in targets['labels']]}")
-        break
-
-if __name__ == "__main__":
-    test()
