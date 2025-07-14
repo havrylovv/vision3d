@@ -43,7 +43,6 @@ class mATEMetric(Metric):
         assert len(pred_bboxes) == len(gt_bboxes), \
             "Predictions and targets must have the same number of samples."
         
-        # Process each sample in the batch
         for pred_bbox, gt_bbox in zip(pred_bboxes, gt_bboxes):
             self._update_single_sample(pred_bbox, gt_bbox)
     
@@ -59,7 +58,6 @@ class mATEMetric(Metric):
             self.num_samples += 1
             return
         
-        # Convert to numpy
         pred_bbox_np = pred_bbox.detach().cpu().numpy()
         gt_bbox_np = gt_bbox.detach().cpu().numpy()
         
@@ -84,7 +82,6 @@ class mATEMetric(Metric):
                 'mATE': float('inf'),
             }
         
-        # Compute mean average translation error
         mate_score = np.mean(self.translation_errors)
         
         return {

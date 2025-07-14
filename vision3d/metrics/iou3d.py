@@ -1,3 +1,5 @@
+"""IoU3D Metric Implementation"""
+
 import torch
 import numpy as np
 from typing import List, Dict, Any
@@ -46,7 +48,6 @@ class IoU3DMetric(Metric):
         assert len(pred_bboxes) == len(gt_bboxes), \
             "Predictions and targets must have the same number of samples."
         
-        # Process each sample in the batch
         for pred_bbox, gt_bbox in zip(pred_bboxes, gt_bboxes):
             self._update_single_sample(pred_bbox, gt_bbox)
     
@@ -84,7 +85,6 @@ class IoU3DMetric(Metric):
                 'IoU3D': 0.0,
             }
         
-        # Compute mean 3D IoU
         iou3d_score = np.mean(self.iou_values)
         
         return {

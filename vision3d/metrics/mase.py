@@ -43,7 +43,6 @@ class mASEMetric(Metric):
         assert len(pred_bboxes) == len(gt_bboxes), \
             "Predictions and targets must have the same number of samples."
         
-        # Process each sample in the batch
         for pred_bbox, gt_bbox in zip(pred_bboxes, gt_bboxes):
             self._update_single_sample(pred_bbox, gt_bbox)
     
@@ -59,7 +58,6 @@ class mASEMetric(Metric):
             self.num_samples += 1
             return
         
-        # Convert to numpy
         pred_bbox_np = pred_bbox.detach().cpu().numpy()
         gt_bbox_np = gt_bbox.detach().cpu().numpy()
         
@@ -80,7 +78,7 @@ class mASEMetric(Metric):
             
             # Compute scale error for each dimension (w, l, h)
             scale_ratios = np.minimum(pred_size / gt_size, gt_size / pred_size)
-            scale_error = 1 - np.mean(scale_ratios)  # Average across w, l, h
+            scale_error = 1 - np.mean(scale_ratios)  
             
             scale_errors.append(scale_error)
         
@@ -99,7 +97,6 @@ class mASEMetric(Metric):
                 'mASE': float('inf'),
             }
         
-        # Compute mean average scale error
         mase_score = np.mean(self.scale_errors)
         
         return {

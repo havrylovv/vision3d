@@ -1,3 +1,5 @@
+"""mAOE Metric for 3D Object Detection"""
+
 import torch
 import numpy as np
 from typing import List, Dict, Any
@@ -43,7 +45,6 @@ class mAOEMetric(Metric):
         assert len(pred_bboxes) == len(gt_bboxes), \
             "Predictions and targets must have the same number of samples."
         
-        # Process each sample in the batch
         for pred_bbox, gt_bbox in zip(pred_bboxes, gt_bboxes):
             self._update_single_sample(pred_bbox, gt_bbox)
     
@@ -59,7 +60,6 @@ class mAOEMetric(Metric):
             self.num_samples += 1
             return
         
-        # Convert to numpy
         pred_bbox_np = pred_bbox.detach().cpu().numpy()
         gt_bbox_np = gt_bbox.detach().cpu().numpy()
         
@@ -104,7 +104,6 @@ class mAOEMetric(Metric):
                 'mAOE': float('inf'),
             }
         
-        # Compute mean average orientation error
         maoe_score = np.mean(self.orientation_errors)
         
         return {
