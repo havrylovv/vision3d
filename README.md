@@ -1,13 +1,13 @@
 # Vision3D: Monocular 3D Object Detection with Auxiliary Point Cloud Input
 
-**Framework:**  Vision3D is a custom, pure PyTorch-based framework designed for 3D Computer Vision tasks. The framework is modular, extensible, and has all core components for training, evaluation and visualization. Additionally, it supports WandB experiments logging and exporting models to ONNX for deployment.
+**Framework:**  Vision3D is a custom, pure PyTorch-based framework designed for 3D Computer Vision tasks. The framework is modular, extensible, and has all core components for data preprocessing, training, evaluation and visualization. Additionally, it supports WandB experiments logging and exporting models to ONNX for deployment.
 
 **MonoDETR3D Model:** Performs 3D object detection from single RGB image and structured Point Cloud (PC).
 
 **Key features:**
 - Utilizes two ResNet encoders to extract multi-scale features from RGB images and structured Point Clouds (PC).
-- Leverages the `SpatiallyAwareTransformer` to efficiently fuse these modalities using CUDA-optimized Deformable Self-Attention, followed by Cross-Attention modules. Refer to [diagram](./assets/spatially_aware_transformer_diagram.png) for details. 
-- Enhances the image encoder by introducing a proxy task that predicts meaningful segmentation masks for regularization.
+- Leverages the `SpatiallyAwareTransformer` to efficiently fuse these modalities using CUDA-optimized Deformable Self-Attention, followed by additional attention mechanisms. See the [diagram](./assets/spatially_aware_transformer_diagram.png) for an architectural overview.
+- Utilizes image features to predict a segmentation mask, encouraging the learning of semantically meaningful representations.
 - The model predicts a fixed number of objects, which are matched to ground truth targets using the Hungarian algorithm.
 
 ![Diagram](./assets/mono_detr3d_diagram.png)

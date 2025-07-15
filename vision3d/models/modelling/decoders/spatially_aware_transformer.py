@@ -1,11 +1,12 @@
 """Spatially-Aware Transformer to fuse multi-scale features from two modalities and output refined queries.
 
 Idea: 
--> Recieves multi-scale features from two modalities (e.g. LiDAR and Camera)
--> Encodes each modality using a visual encoder with multi-scale deformable attention
--> Applies cross-attention between the two modalities
--> Applies Cross-Attention between the fused modality and learnable queries and Self-Attention 
--> Outputs refined queries for object detection
+    -> Recieves multi-scale features from two modalities (e.g. RGB and Point Cloud)
+    -> Encodes each modality using a VisualEncoder with multi-scale Deformable Attention
+    -> Applies Cross-Attention blocks between the two modalities
+    -> Fuses the two modalities using element-wise addition with a learnable weight
+    -> Applies multiple Decoder layers to refine the fused features
+    -> Outputs refined queries suitable for object detection tasks
 
 VisualEncoder part is inpired and implemented from MonoDETR: https://github.com/ZrrSkywalker/MonoDETR
 """
