@@ -1,6 +1,6 @@
 """Utility functions for ordering unstructured 3D bounding boxes and converting them between different formats."""
 
-from typing import Tuple, Union
+from typing import Union
 
 import numpy as np
 import torch
@@ -253,17 +253,3 @@ def orthonormalize_basis(x, y, z):
     z = z - np.dot(z, x) * x - np.dot(z, y) * y
     z = z / np.linalg.norm(z)
     return x, y, z
-
-
-"""
-Old example usage 
-original_bbox3d = bbox3d.copy()  # Keep original for comparison
-reordered_bboxes = reorder_corners_pca(original_bbox3d)
-obb = corners_to_obb(reordered_bboxes)
-print(f"obb Shape: {obb.shape}")
-reconstructed_obb = obb_to_corners(obb)
-print(f"Reconstructed Corners Shape: {reconstructed_obb.shape}")
-
-compare_bboxes(reordered_bboxes, reconstructed_obb, colors=['blue', 'red'])
-
-"""
